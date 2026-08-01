@@ -427,7 +427,16 @@
 <script>
 (function(){
 
-const DEV_PASSCODE = "Darsh1112";
+/* SHA-256 hash of the passcode — the real passcode is never stored in this file.
+   To change it: hash your new passcode (e.g. run in a browser console:
+   crypto.subtle.digest('SHA-256', new TextEncoder().encode('yourPassword')).then(b=>console.log(
+     [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+   and paste the result below. */
+const DEV_PASSCODE_HASH = "3522aef00157ee2d906b2f50b95055211a7234491384a34e706fe0a27396e03f";
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 const ICONS = {
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>',
@@ -458,7 +467,7 @@ const firebaseConfig = {
   databaseURL: "https://maps-and-more-by-masterteddy-default-rtdb.firebaseio.com",
   projectId: "maps-and-more-by-masterteddy",
   storageBucket: "maps-and-more-by-masterteddy.firebasestorage.app",
-  messagingSenderId: "451484523963",
+  messagingSenderId: "YOUR_SENDER_ID",
   appId: "1:451484523963:web:cf39feaf4d314a6540789e"
 };
 const firebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY" &&
@@ -580,10 +589,18 @@ $('themeToggle').addEventListener('click', () => {
 });
 
 /* ---------- password gate ---------- */
-$('gateForm').addEventListener('submit', (e) => {
+$('gateForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const val = $('gateInput').value.trim();
-  if(val === DEV_PASSCODE){
+  let hash;
+  try{
+    hash = await sha256Hex(val);
+  }catch(err){
+    console.error('Could not hash passcode — crypto.subtle needs a secure context (https or localhost).', err);
+    alert('Could not verify the passcode here. This page needs to be served over HTTPS (like GitHub Pages) for that check to work.');
+    return;
+  }
+  if(hash === DEV_PASSCODE_HASH){
     state.devMode = true;
     $('gateSection').hidden = true;
     $('devBar').hidden = false;
