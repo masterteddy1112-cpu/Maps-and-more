@@ -3,1051 +3,1405 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vault — Link Dashboard</title>
+<title>Chest — open anything</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
-  :root[data-theme="light"]{
-    --bg-a:#eef2f8; --bg-b:#e3e9f2;
-    --card:#f6f9fc;
-    --card-hi:#ffffff; --card-lo:#c7d1e0;
-    --text:#1b2430; --muted:#8791a3; --faint:#aeb6c4;
-    --accent1:#5b8dff; --accent2:#2451e8;
-    --border: rgba(27,36,48,0.07);
-    --danger:#e5484d; --danger-bg:#fdecec;
-    --success:#1fa971;
-    --input-bg:#ffffff;
-    --overlay: rgba(20,26,38,0.45);
-    --code-bg: rgba(27,36,48,0.06);
-  }
-  :root[data-theme="dark"]{
-    --bg-a:#14162a; --bg-b:#0b0c17;
-    --card:#1a1c30;
-    --card-hi:#232640; --card-lo:#0a0b16;
-    --text:#f1f2f9; --muted:#9096b0; --faint:#5c6180;
-    --accent1:#8b6cf6; --accent2:#3b82f6;
-    --border: rgba(255,255,255,0.07);
-    --danger:#ff7676; --danger-bg:rgba(255,118,118,0.12);
-    --success:#3fdc8e;
-    --input-bg:#12131f;
-    --overlay: rgba(3,4,10,0.6);
-    --code-bg: rgba(255,255,255,0.08);
-  }
+:root{
+  --r-sm:8px; --r-md:14px; --r-lg:20px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html[data-theme="light"]{
+  --bg:#EAF1F8; --surface:#FFFFFF; --surface-2:#F3F7FB; --surface-3:#E4ECF5;
+  --border:#DCE6F0; --text:#16202B; --text-muted:#66758A; --text-faint:#94A2B5;
+  --accent-1:#2F6FED; --accent-2:#6FA8FF;
+  --success:#1FAE6E; --warn:#B9790B; --danger:#D8453F;
+  --shadow-soft: 6px 6px 16px rgba(150,170,195,0.35), -6px -6px 16px rgba(255,255,255,0.8);
+  --shadow-pressed: inset 3px 3px 8px rgba(150,170,195,0.35), inset -3px -3px 8px rgba(255,255,255,0.8);
+  --hl-kw:#1B5FD6; --hl-str:#1FAE6E; --hl-num:#B9790B; --hl-com:#94A2B5; --hl-fn:#7B3FE4; --hl-attr:#C2410C; --hl-title:#0F4FB8;
+}
+html[data-theme="dark"]{
+  --bg:#0A0D14; --surface:#131826; --surface-2:#171D2C; --surface-3:#1D2434;
+  --border:#252D40; --text:#EDF1F7; --text-muted:#8893A8; --text-faint:#5C657A;
+  --accent-1:#7C5CFF; --accent-2:#00C2FF;
+  --success:#34D399; --warn:#FBBF24; --danger:#F87171;
+  --shadow-soft: 0 8px 24px rgba(0,0,0,0.45);
+  --shadow-pressed: inset 0 2px 6px rgba(0,0,0,0.5);
+  --hl-kw:#9D8CFF; --hl-str:#34D399; --hl-num:#FBBF24; --hl-com:#5C657A; --hl-fn:#00C2FF; --hl-attr:#F0A35E; --hl-title:#7DD3FC;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);transition:background .25s ease,color .25s ease;}
+button{font-family:inherit;}
+.app{display:flex;flex-direction:column;height:100vh;}
 
-  *{box-sizing:border-box;}
-  [hidden]{display:none !important;}
-  html,body{margin:0;padding:0;}
-  body{
-    font-family:'Inter',sans-serif;
-    color:var(--text);
-    background:
-      radial-gradient(circle at 85% -10%, var(--bg-a) 0%, var(--bg-b) 55%);
-    min-height:100vh;
-    transition:background .35s ease, color .35s ease;
-  }
-  h1,h2,h3{font-family:'Manrope',sans-serif; margin:0;}
-  ::selection{background:var(--accent1); color:#fff;}
-  button{font-family:inherit;}
-  input,textarea{font-family:'Inter',sans-serif;}
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-0.01em;}
+.brand .chest-icon{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent-2),var(--accent-1));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.brand-sub{font-size:11px;color:var(--text-muted);font-weight:500;letter-spacing:0.02em;margin-left:2px;}
+.icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease;}
+.icon-btn:hover{color:var(--text);border-color:var(--accent-1);}
+.icon-btn:focus-visible, button:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--accent-1);outline-offset:2px;}
 
-  .app{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+.topbar-actions{display:flex;align-items:center;gap:10px;}
+.status-pill{display:flex;align-items:center;gap:7px;padding:7px 12px 7px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text-muted);cursor:default;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+.status-dot.online{background:var(--success);box-shadow:0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);}
+.status-dot.offline{background:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent);}
+.status-dot.unconfigured{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent);}
 
-  /* ---------- topbar ---------- */
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
-  .brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.02em;}
-  .brand .brand-icon{
-    width:34px;height:34px;border-radius:10px;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 6px 16px rgba(59,90,220,0.35);
-  }
-  .brand .brand-icon svg{width:18px;height:18px;stroke:#fff;}
-  .top-actions{display:flex;gap:10px;}
+/* Layout */
+.layout{display:flex;flex:1;min-height:0;}
+.sidebar{width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface-2);}
+.viewer{flex:1;min-width:0;overflow-y:auto;padding:26px;}
 
-  .sync-pill{
-    display:flex;align-items:center;gap:7px;height:40px;padding:0 12px;
-    border-radius:12px;background:var(--card);border:1px solid var(--border);
-    font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;
-  }
-  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto;}
-  .sync-dot.online{background:var(--success);box-shadow:0 0 0 3px rgba(63,220,142,0.22);}
-  .sync-dot.offline{background:var(--danger);}
-  .sync-dot.error{background:var(--danger);box-shadow:0 0 0 3px rgba(229,72,77,0.22);}
-  .sync-dot.local{background:var(--faint);}
-  .icon-btn{
-    width:40px;height:40px;border-radius:12px;border:1px solid var(--border);
-    background:var(--card);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;
-    box-shadow:5px 5px 12px var(--card-lo), -5px -5px 12px var(--card-hi);
-    color:var(--text);
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .icon-btn:hover{transform:translateY(-1px);}
-  .icon-btn:active{transform:translateY(0);box-shadow:inset 3px 3px 8px var(--card-lo), inset -3px -3px 8px var(--card-hi);}
-  .icon-btn svg{width:18px;height:18px;}
-  :focus-visible{outline:2px solid var(--accent2); outline-offset:2px;}
+/* Dropzone */
+.dropzone{margin:16px;padding:22px 14px;border:1.5px dashed var(--border);border-radius:var(--r-lg);text-align:center;background:var(--surface);transition:all .18s ease;}
+.dropzone.dragover{border-color:var(--accent-1);background:linear-gradient(180deg,var(--surface-3),var(--surface));box-shadow:0 0 0 4px color-mix(in srgb, var(--accent-1) 14%, transparent);}
+.dropzone svg{width:34px;height:34px;color:var(--accent-1);margin-bottom:8px;}
+.dropzone p{margin:4px 0;font-size:13.5px;color:var(--text-muted);}
+.dropzone .browse-link{color:var(--accent-1);font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-size:13.5px;text-decoration:underline;text-underline-offset:2px;}
+.dropzone .hint{font-size:11.5px;color:var(--text-faint);margin-top:6px;}
 
-  /* ---------- neumorphic card base ---------- */
-  .neu{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:20px;
-    box-shadow:8px 8px 22px var(--card-lo), -8px -8px 22px var(--card-hi);
-  }
+/* File list */
+.file-list{flex:1;overflow-y:auto;padding:0 12px 12px;}
+.file-list-empty{padding:24px 14px;text-align:center;color:var(--text-faint);font-size:12.5px;}
+.file-item:hover{background:var(--surface);}
+.file-item.active{background:var(--surface);border-color:var(--accent-1);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent-1) 12%, transparent);}
+.file-item .f-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.file-item .f-icon svg{width:16px;height:16px;}
+.file-item .f-meta{min-width:0;flex:1;}
+.file-item .f-name{font-size:12.8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-item .f-sub{font-size:11px;color:var(--text-muted);}
+.kind-zip{background:linear-gradient(135deg,var(--accent-2),var(--accent-1));}
+.kind-code{background:linear-gradient(135deg,#7B3FE4,#3F5EE4);}
+.kind-text{background:linear-gradient(135deg,#3FB6E4,#2F8FED);}
+.kind-disk{background:linear-gradient(135deg,#94A2B5,#66758A);}
+.kind-exec{background:linear-gradient(135deg,#E47A3F,#D8453F);}
+.kind-archive-unsupported{background:linear-gradient(135deg,#B98FED,#7B3FE4);}
+.kind-other{background:linear-gradient(135deg,#9AA7B8,#6B7A8D);}
+.kind-image{background:linear-gradient(135deg,#34D399,#1FAE6E);}
+.kind-video{background:linear-gradient(135deg,#F472B6,#C2410C);}
 
-  /* ---------- gate card ---------- */
-  .gate-card{
-    padding:30px 28px;margin-bottom:22px;
-    display:flex;flex-direction:column;align-items:flex-start;gap:10px;
-  }
-  .gate-icon{
-    width:46px;height:46px;border-radius:14px;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    display:flex;align-items:center;justify-content:center;margin-bottom:4px;
-    box-shadow:0 8px 18px rgba(59,90,220,0.3);
-  }
-  .gate-icon svg{width:22px;height:22px;stroke:#fff;}
-  .gate-card h2{font-size:19px;}
-  .gate-card p.muted{margin:0;font-size:13.5px;line-height:1.5;max-width:46ch;}
-  #gateForm{display:flex;gap:10px;width:100%;margin-top:6px;flex-wrap:wrap;}
-  #gateInput{
-    flex:1;min-width:180px;
-    background:var(--input-bg); border:1px solid var(--border); border-radius:12px;
-    padding:12px 14px;font-size:14px;color:var(--text);
-  }
-  .error-text{color:var(--danger);font-size:13px;font-weight:600;margin:2px 0 0;}
-  .shake{animation:shake .4s ease;}
-  @keyframes shake{
-    10%,90%{transform:translateX(-2px);}
-    20%,80%{transform:translateX(4px);}
-    30%,50%,70%{transform:translateX(-8px);}
-    40%,60%{transform:translateX(8px);}
-  }
+.sidebar-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px 0;}
+.sidebar-toolbar .sort-btn{flex:1;display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:600;}
+.sidebar-toolbar .sort-btn:hover{color:var(--text);border-color:var(--accent-1);}
+.sidebar-toolbar .sort-btn svg{width:14px;height:14px;flex-shrink:0;}
+.sidebar-toolbar .sort-btn .sort-label{flex:1;text-align:left;}
+.sidebar-toolbar .sort-btn .sort-chev{width:12px;height:12px;transition:transform .15s;}
+.sidebar-toolbar .sort-btn.open .sort-chev{transform:rotate(180deg);}
+.sort-dropdown{position:relative;margin:6px 12px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:visible;display:none;box-shadow:var(--shadow-soft);z-index:40;}
+.sort-dropdown.open{display:block;}
+.sort-option{position:relative;display:flex;align-items:center;gap:9px;padding:8px 10px;font-size:12.5px;cursor:pointer;color:var(--text-muted);border-radius:7px;margin:3px;}
+.sort-option:hover{background:var(--surface-2);color:var(--text);}
+.sort-option.active{color:var(--accent-1);background:color-mix(in srgb,var(--accent-1) 6%,var(--surface));}
+.sort-option svg{width:14px;height:14px;flex-shrink:0;}
+.sort-option .so-label{flex:1;}
+.sort-option .so-check{width:13px;height:13px;flex-shrink:0;opacity:0;}
+.sort-option.active .so-check{opacity:1;}
+.sort-option .so-arrow{width:11px;height:11px;flex-shrink:0;opacity:.65;}
+.sort-sep{height:1px;background:var(--border);margin:4px 8px;}
+.sort-submenu{position:absolute;top:-4px;left:calc(100% + 6px);min-width:168px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-soft);padding:3px;display:none;z-index:50;}
+.sort-submenu.open{display:block;}
+.has-sub.submenu-active{color:var(--accent-1);}
+.file-group-header{padding:12px 14px 4px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);}
+.file-group-header:first-child{padding-top:6px;}
 
-  /* ---------- dev bar ---------- */
-  .dev-bar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px 18px;margin-bottom:22px;border-radius:16px;
-    background:linear-gradient(135deg, color-mix(in srgb, var(--accent1) 18%, transparent), color-mix(in srgb, var(--accent2) 10%, transparent));
-    border:1px solid var(--border);
-  }
-  .dev-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;color:var(--accent2);}
-  .dev-badge svg{width:16px;height:16px;stroke:var(--accent2);}
-  :root[data-theme="dark"] .dev-badge, :root[data-theme="dark"] .dev-badge svg{color:var(--accent1);stroke:var(--accent1);}
+.file-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-md);cursor:pointer;margin-bottom:4px;border:1px solid transparent;position:relative;}
+.file-item:hover .del-btn,.file-item.active .del-btn{opacity:1;}
+.del-btn{opacity:0;width:26px;height:26px;border-radius:8px;border:none;background:color-mix(in srgb,var(--danger) 12%,var(--surface));color:var(--danger);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .12s ease;}
+.del-btn:hover{background:var(--danger);color:#fff;}
+.del-btn svg{width:13px;height:13px;}
 
-  /* ---------- buttons ---------- */
-  .btn-primary{
-    display:inline-flex;align-items:center;gap:8px;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    color:#fff;border:none;border-radius:12px;padding:11px 18px;
-    font-weight:700;font-size:13.5px;cursor:pointer;
-    box-shadow:0 8px 18px rgba(59,90,220,0.28);
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .btn-primary:hover{transform:translateY(-1px);}
-  .btn-primary svg{width:16px;height:16px;stroke:#fff;}
-  .btn-ghost{
-    background:transparent;border:1px solid var(--border);color:var(--text);
-    border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;
-  }
-  .btn-danger{
-    background:var(--danger-bg);color:var(--danger);border:1px solid transparent;
-    border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;
-  }
+/* Upload progress */
+.upload-progress-wrap{margin:0 16px 10px;display:none;}
+.upload-progress-wrap.visible{display:block;}
+.upload-progress-item{margin-bottom:7px;}
+.upload-progress-name{font-size:11.5px;font-weight:600;color:var(--text-muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.upload-progress-bar-track{height:5px;border-radius:99px;background:var(--surface-3);overflow:hidden;}
+.upload-progress-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent-2),var(--accent-1));transition:width .08s linear;}
+.upload-progress-pct{font-size:10.5px;color:var(--text-faint);display:flex;justify-content:space-between;gap:8px;margin-top:2px;}
+.upload-progress-pct span{white-space:nowrap;}
+.upload-progress-item.is-error .upload-progress-bar-fill{background:var(--danger);}
+.upload-progress-error-msg{font-size:10.5px;color:var(--danger);font-weight:600;margin-top:3px;}
 
-  /* ---------- links section ---------- */
-  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .section-head h2{font-size:17px;}
-  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
-  .empty-state{
-    text-align:center;padding:50px 20px;border:1.5px dashed var(--border);border-radius:18px;font-size:14px;
-  }
+/* Storage badge under filename */
+.f-storage{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;margin-top:1px;}
+.f-storage svg{width:10px;height:10px;flex-shrink:0;}
+.f-storage.st-catbox{color:var(--success);}
+.f-storage.st-rtdb{color:var(--success);}
+.f-storage.st-local{color:var(--text-faint);}
 
-  .link-card{overflow:hidden;transition:box-shadow .2s ease;}
-  .link-card-main{
-    display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;
-  }
-  .link-icon{
-    width:42px;height:42px;flex:0 0 auto;border-radius:12px;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    display:flex;align-items:center;justify-content:center;
-  }
-  .link-icon svg{width:20px;height:20px;stroke:#fff;}
-  .link-icon.empty{
-    background:var(--input-bg);border:1.5px dashed var(--border);color:var(--faint);
-  }
-  .link-icon.empty svg{stroke:var(--faint);}
-  .link-icon.has-image{background:none;padding:0;overflow:hidden;border:1px solid var(--border);}
-  .link-icon.has-image img{width:100%;height:100%;object-fit:cover;border-radius:inherit;}
-  .link-info{flex:1;min-width:0;}
-  .link-title{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .link-url{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .link-card-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
-  .chevron-btn{
-    width:32px;height:32px;border-radius:9px;border:none;background:transparent;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
-    transition:transform .25s ease, background .15s ease, color .15s ease;
-  }
-  .chevron-btn:hover{background:var(--code-bg);color:var(--text);}
-  .chevron-btn svg{width:16px;height:16px;}
-  .chevron-btn.open{transform:rotate(-90deg);color:var(--accent2);}
-  .mini-btn{
-    width:32px;height:32px;border-radius:9px;border:none;background:transparent;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
-  }
-  .mini-btn:hover{background:var(--code-bg);color:var(--text);}
-  .mini-btn svg{width:15px;height:15px;}
-  .mini-btn.danger:hover{color:var(--danger);}
+/* Cloud-file card (catbox files with no local viewer) */
+.cloud-card{padding:50px 30px;text-align:center;}
+.cloud-card > svg{width:46px;height:46px;color:var(--accent-1);margin-bottom:14px;}
+.cloud-card h3{font-family:var(--font-display);margin:0 0 8px;font-size:16px;}
+.cloud-card p{font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto 18px;}
 
-  .link-desc-panel{
-    max-height:0;overflow:hidden;transition:max-height .25s ease, padding .25s ease;
-    border-top:1px solid transparent;
-  }
-  .link-desc-panel.open{
-    max-height:400px;padding:2px 18px 18px 74px;border-top:1px solid var(--border);
-  }
-  .md-rendered{font-size:13.5px;line-height:1.6;color:var(--muted);}
-  .md-rendered h1,.md-rendered h2,.md-rendered h3{color:var(--text);margin:8px 0 4px;}
-  .md-rendered h1{font-size:18px;} .md-rendered h2{font-size:16px;} .md-rendered h3{font-size:14.5px;}
-  .md-rendered code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--text);}
-  .md-rendered p{margin:4px 0;}
-  .md-rendered em{color:var(--text);}
-  .md-rendered del{opacity:.6;}
-  .md-rendered a{color:var(--accent2);font-weight:600;text-decoration:none;}
-  .md-rendered a:hover{text-decoration:underline;}
-  .md-rendered ul,.md-rendered ol{margin:4px 0;padding-left:20px;}
-  .md-rendered li{margin:2px 0;}
-  .md-rendered ul.md-checklist{list-style:none;padding-left:0;}
-  .md-rendered ul.md-checklist li{display:flex;align-items:flex-start;gap:7px;}
-  .md-rendered ul.md-checklist input{margin-top:3px;}
-  .md-rendered img{max-width:100%;border-radius:10px;margin:6px 0;display:block;}
-  .md-video{position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:10px;overflow:hidden;background:#000;}
-  .md-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
-  .md-video-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent2);font-weight:700;}
+.sidebar-footer{padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-faint);display:flex;justify-content:space-between;}
 
-  /* ---------- modal ---------- */
-  .modal-overlay{
-    position:fixed;inset:0;background:var(--overlay);
-    display:flex;align-items:flex-start;justify-content:center;
-    padding:5vh 16px; overflow-y:auto; z-index:50;
-  }
-  .modal{
-    width:100%;max-width:560px;padding:24px;display:flex;flex-direction:column;gap:14px;
-  }
-  .modal-head{display:flex;align-items:center;justify-content:space-between;}
-  .modal-head h3{font-size:17px;}
-  label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:700;color:var(--muted);}
-  input[type=text],input[type=url],input[type=password]{
-    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;
-    padding:11px 13px;font-size:13.5px;color:var(--text);font-weight:500;
-  }
-  .icon-picker-label{font-size:12.5px;font-weight:700;color:var(--muted);}
-  .icon-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:-6px;}
-  .icon-opt{
-    width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:var(--input-bg);
-    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
-  }
-  .icon-opt svg{width:17px;height:17px;}
-  .icon-opt.selected{
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    border-color:transparent;color:#fff;
-  }
+/* Empty state */
+.empty-state{height:100%;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text-muted);}
+.empty-state svg{width:54px;height:54px;color:var(--text-faint);margin-bottom:14px;}
+.empty-state h2{font-family:var(--font-display);font-size:19px;margin:0 0 6px;color:var(--text);}
+.empty-state p{font-size:13.5px;max-width:340px;margin:0;}
 
-  .editor-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px;}
-  .toolbar{display:flex;flex-wrap:wrap;gap:6px;}
-  .tb-btn{
-    min-width:32px;height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--border);
-    background:var(--input-bg);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;
-    font-family:'JetBrains Mono',monospace;
-  }
-  .tb-btn:hover{background:var(--code-bg);}
-  .tb-btn.italic{font-style:italic;}
-  .tb-btn.bolditalic{font-style:italic;}
-  .editor-mode-toggle{display:flex;background:var(--input-bg);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
-  .mode-btn{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;}
-  .mode-btn.active{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff;}
-  #descInput{
-    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;
-    padding:12px 13px;font-size:13.5px;color:var(--text);resize:vertical;min-height:120px;line-height:1.5;
-  }
-  .md-preview{
-    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px;min-height:120px;
-  }
-  .modal-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:4px;}
-  .unsaved-badge{
-    margin-right:auto;font-size:12px;font-weight:700;color:#d97706;
-    display:flex;align-items:center;gap:6px;
-  }
-  .unsaved-badge::before{
-    content:'';width:7px;height:7px;border-radius:50%;background:#d97706;flex:0 0 auto;
-  }
-  .icon-opt.upload-opt{border-style:dashed;color:var(--muted);}
-  .icon-opt.none-opt{color:var(--faint);}
-  .icon-opt img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+/* Viewer cards */
+.v-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow-soft);}
+.v-header-left{display:flex;gap:14px;align-items:flex-start;min-width:0;}
+.v-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.v-icon svg{width:22px;height:22px;}
+.v-title{font-family:var(--font-display);font-weight:600;font-size:17px;word-break:break-all;}
+.v-tags{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.tag{font-size:11px;padding:3px 9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-weight:600;letter-spacing:0.02em;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:99px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;}
+.btn svg{width:14px;height:14px;}
+.btn-gradient{background:linear-gradient(135deg,var(--accent-2),var(--accent-1));color:#fff;}
+.btn-ghost{background:var(--surface-2);border:1px solid var(--border);color:var(--text);}
+.btn-ghost:hover{border-color:var(--accent-1);}
 
-  .icon-preview-row{display:flex;align-items:center;gap:14px;}
-  .icon-preview-box{
-    width:56px;height:56px;border-radius:14px;flex:0 0 auto;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    display:flex;align-items:center;justify-content:center;overflow:hidden;
-  }
-  .icon-preview-box svg{width:24px;height:24px;stroke:#fff;}
-  .icon-preview-box img{width:100%;height:100%;object-fit:cover;}
-  .icon-preview-box.empty{background:var(--input-bg);border:1.5px dashed var(--border);}
-  .icon-preview-box.empty svg{stroke:var(--faint);}
-  .icon-preview-actions{display:flex;flex-direction:column;gap:6px;}
-  .ghost-danger{color:var(--danger);border-color:var(--danger-bg);}
-  .ghost-danger:hover{background:var(--danger-bg);}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-soft);overflow:hidden;}
+.panel-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);}
+.panel-bar-left{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);font-weight:600;}
+.panel-bar-left svg{width:14px;height:14px;}
 
-  .tb-sep{width:1px;align-self:stretch;background:var(--border);margin:2px 2px;}
-  .tb-icon{display:flex;align-items:center;justify-content:center;padding:0;width:30px;}
-  .tb-icon svg{width:15px;height:15px;}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);font-size:12.5px;margin-bottom:14px;border:1px solid;}
+.notice svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.notice-warn{background:color-mix(in srgb, var(--warn) 10%, var(--surface));border-color:color-mix(in srgb, var(--warn) 35%, var(--border));color:var(--warn);}
+.notice-info{background:color-mix(in srgb, var(--accent-1) 8%, var(--surface));border-color:color-mix(in srgb, var(--accent-1) 30%, var(--border));color:var(--accent-1);}
 
-  @media (max-width:520px){
-    .link-desc-panel.open{padding-left:18px;}
-    #gateForm{flex-direction:column;}
-    #gateForm .btn-primary{width:100%;justify-content:center;}
-  }
+/* code / text view */
+.code-scroll{max-height:62vh;overflow:auto;font-family:var(--font-mono);font-size:12.6px;line-height:1.65;background:var(--surface);}
+.code-line{display:flex;}
+.code-line .ln{width:46px;flex-shrink:0;text-align:right;padding-right:14px;color:var(--text-faint);user-select:none;border-right:1px solid var(--border);margin-right:14px;}
+.code-line .lc{white-space:pre;color:var(--text);padding-right:18px;}
+.code-line:hover{background:var(--surface-2);}
+.hljs-keyword,.hljs-selector-tag,.hljs-literal{color:var(--hl-kw);}
+.hljs-string,.hljs-regexp{color:var(--hl-str);}
+.hljs-number{color:var(--hl-num);}
+.hljs-comment,.hljs-quote{color:var(--hl-com);font-style:italic;}
+.hljs-title,.hljs-section{color:var(--hl-title);font-weight:600;}
+.hljs-function .hljs-title,.hljs-built_in{color:var(--hl-fn);}
+.hljs-attr,.hljs-attribute,.hljs-tag{color:var(--hl-attr);}
+.hljs-variable,.hljs-template-variable{color:var(--text);}
+
+/* zip viewer */
+.zip-body{display:flex;min-height:380px;max-height:64vh;}
+.zip-tree{width:280px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:10px;}
+.zip-preview{flex:1;min-width:0;overflow:auto;}
+.tree-node{user-select:none;}
+.tree-row{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:8px;cursor:pointer;font-size:12.5px;}
+.tree-row:hover{background:var(--surface-2);}
+.tree-row.active{background:var(--surface-2);box-shadow:inset 2px 0 0 var(--accent-1);font-weight:600;}
+.tree-row svg{width:14px;height:14px;flex-shrink:0;color:var(--text-muted);}
+.tree-row .t-icon{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.tree-row .t-icon svg{width:11px;height:11px;color:#fff;}
+.tree-row .t-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tree-row .t-size{margin-left:auto;font-size:10.5px;color:var(--text-faint);flex-shrink:0;}
+.tree-children{margin-left:16px;border-left:1px solid var(--border);padding-left:6px;}
+.chev{transition:transform .12s ease;}
+.chev.open{transform:rotate(90deg);}
+.zip-preview-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12.5px;text-align:center;padding:20px;}
+
+/* loading */
+.ring{width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--accent-1) var(--p,0%),var(--surface-3) 0);display:flex;align-items:center;justify-content:center;animation:spin 1s linear infinite;}
+.ring::after{content:'';width:22px;height:22px;border-radius:50%;background:var(--surface);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-row{display:flex;align-items:center;gap:12px;padding:40px;color:var(--text-muted);font-size:12.5px;justify-content:center;}
+
+/* unsupported card */
+.unsupported{padding:50px 30px;text-align:center;}
+.unsupported svg{width:46px;height:46px;color:var(--text-faint);margin-bottom:14px;}
+.unsupported h3{font-family:var(--font-display);margin:0 0 8px;font-size:16px;}
+.unsupported p{font-size:13px;color:var(--text-muted);max-width:380px;margin:0 auto;}
+
+.media-frame{display:flex;align-items:center;justify-content:center;padding:24px;background:repeating-conic-gradient(var(--surface-2) 0% 25%, var(--surface) 0% 50%) 50% / 24px 24px;min-height:300px;max-height:64vh;overflow:auto;}
+.media-frame img{max-width:100%;max-height:58vh;border-radius:var(--r-md);box-shadow:var(--shadow-soft);}
+.media-frame video{max-width:100%;max-height:58vh;border-radius:var(--r-md);box-shadow:var(--shadow-soft);background:#000;}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,13,20,0.55);display:none;align-items:center;justify-content:center;z-index:50;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;max-width:380px;width:90%;box-shadow:var(--shadow-soft);}
+.modal .m-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent-2),var(--accent-1));display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:14px;}
+.modal .m-icon svg{width:20px;height:20px;}
+.modal h3{font-family:var(--font-display);margin:0 0 8px;font-size:16px;}
+.modal p{font-size:13px;color:var(--text-muted);margin:0 0 18px;line-height:1.5;}
+.modal-actions{display:flex;justify-content:flex-end;}
+
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+@media (max-width:820px){
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;max-height:42vh;border-right:none;border-bottom:1px solid var(--border);}
+  .zip-body{flex-direction:column;max-height:none;}
+  .zip-tree{width:100%;max-height:220px;border-right:none;border-bottom:1px solid var(--border);}
+}
 </style>
 </head>
 <body>
 <div class="app">
-
   <header class="topbar">
     <div class="brand">
-      <span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg></span>
-      <span>Vault</span>
+      <span class="chest-icon" id="iconChest"></span>
+      <span>Chest<span class="brand-sub">&nbsp; open anything</span></span>
     </div>
-    <div class="top-actions">
-      <span class="sync-pill" id="syncPill" title="Cloud sync status">
-        <span class="sync-dot local" id="syncDot"></span>
-        <span id="syncLabel">Local only</span>
-      </span>
-      <button class="icon-btn" id="themeToggle" title="Toggle theme"></button>
+    <div class="topbar-actions">
+      <div class="status-pill" id="statusPill" title="Firebase connection status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Checking…</span>
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
     </div>
   </header>
 
-  <section class="gate-card neu" id="gateSection">
-    <div class="gate-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
-    <h2>Enter passcode</h2>
-    <p class="muted">Know the passcode? Unlock the developer menu to add and edit links. Otherwise, just browse what's below.</p>
-    <form id="gateForm">
-      <input id="gateInput" type="password" placeholder="Passcode" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-      <button type="submit" class="btn-primary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        Unlock
-      </button>
-    </form>
-    <p class="error-text" id="gateError" hidden>Wrong password</p>
-  </section>
-
-  <section class="dev-bar" id="devBar" hidden>
-    <span class="dev-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.4-2"/></svg>
-      Developer mode active
-    </span>
-    <button class="btn-ghost" id="relockBtn">Lock</button>
-  </section>
-
-  <section class="links-section">
-    <div class="section-head">
-      <h2>Links</h2>
-      <button class="btn-primary" id="addLinkBtn" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-        Add link
-      </button>
-    </div>
-    <div class="links-grid" id="linksGrid"></div>
-    <p class="muted empty-state" id="emptyState" hidden>No links yet.</p>
-  </section>
-
-</div>
-
-<div class="modal-overlay" id="linkModal" hidden>
-  <div class="modal neu">
-    <div class="modal-head">
-      <h3 id="modalTitle">Add link</h3>
-      <button class="icon-btn" id="modalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    </div>
-    <label>Title
-      <input type="text" id="linkTitleInput" placeholder="e.g. Project docs" />
-    </label>
-    <label>URL
-      <input type="url" id="linkUrlInput" placeholder="https://example.com" />
-    </label>
-    <div>
-      <div class="icon-picker-label" style="margin-bottom:8px;">Icon</div>
-      <div class="icon-preview-row">
-        <div class="icon-preview-box" id="iconPreviewBox"></div>
-        <div class="icon-preview-actions">
-          <button type="button" class="btn-ghost" id="uploadIconBtn">Upload icon</button>
-          <button type="button" class="btn-ghost ghost-danger" id="removeIconBtn">Remove icon</button>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="dropzone" id="dropzone">
+        <span id="iconUpload"></span>
+        <p>Drag files here or <button class="browse-link" id="browseBtn">browse</button></p>
+        <input type="file" id="fileInput" multiple hidden>
+        <p class="hint">ISOs, mods, jars, code, zips — up to 100 MB</p>
+      </div>
+      <div class="sidebar-toolbar">
+        <button class="sort-btn" id="sortBtn">
+          <span id="sortBtnIcon"></span>
+          <span class="sort-label" id="sortBtnLabel">Sort: Date added</span>
+          <span class="sort-chev" id="sortBtnChev"></span>
+        </button>
+      </div>
+      <div class="sort-dropdown" id="sortDropdown">
+        <div class="sort-option" data-field="name"><span id="siName"></span><span class="so-label">Name</span><span class="so-check" id="chName"></span></div>
+        <div class="sort-option" data-field="modified"><span id="siModified"></span><span class="so-label">Date modified</span><span class="so-check" id="chModified"></span></div>
+        <div class="sort-option" data-field="type"><span id="siType"></span><span class="so-label">Type</span><span class="so-check" id="chType"></span></div>
+        <div class="sort-option has-sub" id="moreRow"><span id="siMore"></span><span class="so-label">More</span><span class="so-arrow" id="moreArrow"></span>
+          <div class="sort-submenu" id="moreSubmenu">
+            <div class="sort-option" data-field="size"><span id="siSize"></span><span class="so-label">Size</span><span class="so-check" id="chSize"></span></div>
+            <div class="sort-option" data-field="added"><span id="siAdded"></span><span class="so-label">Date added</span><span class="so-check" id="chAdded"></span></div>
+          </div>
+        </div>
+        <div class="sort-sep"></div>
+        <div class="sort-option" data-dir="asc"><span id="siAsc"></span><span class="so-label">Ascending</span><span class="so-check" id="chAsc"></span></div>
+        <div class="sort-option" data-dir="desc"><span id="siDesc"></span><span class="so-label">Descending</span><span class="so-check" id="chDesc"></span></div>
+        <div class="sort-sep"></div>
+        <div class="sort-option has-sub" id="groupRow"><span id="siGroup"></span><span class="so-label">Group by</span><span class="so-arrow" id="groupArrow"></span>
+          <div class="sort-submenu" id="groupSubmenu">
+            <div class="sort-option" data-group="none"><span id="siGroupNone"></span><span class="so-label">(None)</span><span class="so-check" id="chGroupNone"></span></div>
+            <div class="sort-option" data-group="type"><span id="siGroupType"></span><span class="so-label">Type</span><span class="so-check" id="chGroupType"></span></div>
+          </div>
         </div>
       </div>
-      <div class="icon-picker-label" style="margin:14px 0 8px;">Or pick a preset</div>
-      <div class="icon-picker" id="iconPicker"></div>
-      <input type="file" id="iconFileInput" accept="image/*" hidden />
-    </div>
-
-    <div class="editor-head">
-      <div class="toolbar" id="mdToolbar">
-        <button type="button" class="tb-btn" data-type="h1">H1</button>
-        <button type="button" class="tb-btn" data-type="h2">H2</button>
-        <button type="button" class="tb-btn" data-type="h3">H3</button>
-        <button type="button" class="tb-btn" data-type="bold" style="font-weight:900;">B</button>
-        <button type="button" class="tb-btn italic" data-type="italic">I</button>
-        <button type="button" class="tb-btn bolditalic" data-type="boldItalic" style="font-weight:900;">B/I</button>
-        <button type="button" class="tb-btn" data-type="code">&lt;/&gt;</button>
-        <span class="tb-sep"></span>
-        <button type="button" class="tb-btn tb-icon" data-type="strike" title="Strikethrough"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M15.6 7c-.8-1-2.2-1.6-3.7-1.6-2.3 0-4.1 1.1-4.1 2.7 0 1.4 1.2 2.1 3.2 2.5"/><path d="M8.3 16.9c.8 1 2.2 1.6 3.7 1.6 2.4 0 4.3-1.1 4.3-2.8"/></svg></button>
-        <button type="button" class="tb-btn tb-icon" data-type="bulletList" title="Bullet list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="18" r="1.3" fill="currentColor" stroke="none"/><path d="M10 6h10M10 12h10M10 18h10"/></svg></button>
-        <button type="button" class="tb-btn tb-icon" data-type="numberList" title="Numbered list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5.5h1.2v3M4 8.5h1.5M4.2 12h1.3a.8.8 0 0 1 0 1.5H4.2M4.2 13.5h1.3a.8.8 0 0 1 0 1.5H4.2M4 18h1.5v2.5H4"/></svg></button>
-        <button type="button" class="tb-btn tb-icon" data-type="checklist" title="Checklist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="6" height="6" rx="1.2"/><path d="M5 7.3l1 1 2-2.2"/><path d="M13 6h8"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.2"/><path d="M13 17h8"/></svg></button>
-        <span class="tb-sep"></span>
-        <button type="button" class="tb-btn tb-icon" data-type="linkInsert" title="Insert link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg></button>
-        <button type="button" class="tb-btn tb-icon" data-type="imageInsert" title="Insert image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></button>
-        <button type="button" class="tb-btn tb-icon" data-type="videoInsert" title="Insert video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+      <div class="upload-progress-wrap" id="uploadProgressWrap"></div>
+      <div class="file-list" id="fileList">
+        <div class="file-list-empty">No files loaded yet.</div>
       </div>
-      <div class="editor-mode-toggle">
-        <button type="button" class="mode-btn active" id="editModeBtn">Edit</button>
-        <button type="button" class="mode-btn" id="previewModeBtn">Preview</button>
+      <div class="sidebar-footer">
+        <span id="footCount">0 files</span>
+        <span id="footSize">0 B</span>
       </div>
-    </div>
-    <textarea id="descInput" rows="6" placeholder="Description — select text and use the toolbar to format it."></textarea>
-    <div class="md-preview md-rendered" id="descPreview" hidden></div>
+    </aside>
 
+    <main class="viewer" id="viewer">
+      <div class="empty-state">
+        <span id="iconEmpty"></span>
+        <h2>Nothing open yet</h2>
+        <p>Upload a file on the left. Text and code files open in the reader, archives open in the zip viewer, and everything else just shows up as itself.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="m-icon" id="modalIconWrap"></div>
+    <h3 id="modalTitle">Download to edit</h3>
+    <p id="modalBody">This file lives inside a .zip archive. To edit it, download the archive and extract it on your device first — Chest's viewer is read-only.</p>
     <div class="modal-actions">
-      <span class="unsaved-badge" id="unsavedBadge" hidden>You have unsaved edits</span>
-      <button class="btn-danger" id="deleteLinkBtn" hidden>Delete</button>
-      <button class="btn-primary" id="saveLinkBtn">Save link</button>
+      <button class="btn btn-gradient" id="modalClose">Got it</button>
     </div>
   </div>
 </div>
 
 <script>
-(function(){
-
-/* SHA-256 hash of the passcode — the real passcode is never stored in this file.
-   To change it: hash your new passcode (e.g. run in a browser console:
-   crypto.subtle.digest('SHA-256', new TextEncoder().encode('yourPassword')).then(b=>console.log(
-     [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-   and paste the result below. */
-const DEV_PASSCODE_HASH = "3522aef00157ee2d906b2f50b95055211a7234491384a34e706fe0a27396e03f";
-async function sha256Hex(text){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
+/* ---------------- Icons ---------------- */
 const ICONS = {
-  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>',
-  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
-  code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 2 12l6 6"/><path d="M16 6l6 6-6 6"/></svg>',
-  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
-  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
-  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.26 6.9.6-5.2 4.6 1.6 6.74L12 16.9l-6.2 3.3 1.6-6.74-5.2-4.6 6.9-.6z"/></svg>',
-  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
-  message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5A8.5 8.5 0 1 1 21 11.5z"/></svg>',
-  terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>',
-  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>'
+  chest:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 8h16"/><rect x="10" y="5" width="4" height="3" rx="0.5" fill="currentColor" stroke="none"/></svg>`,
+  upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 9 6-6 6 6"/><path d="M5 18v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"/></svg>`,
+  sun:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
+  moon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>`,
+  fileText:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>`,
+  fileCode:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="m10 13-2 2 2 2"/><path d="m14 13 2 2-2 2"/></svg>`,
+  archive:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><path d="M10 13h4"/></svg>`,
+  disk:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v7M12 15v7"/></svg>`,
+  terminal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-5-6-5"/><path d="M12 19h8"/></svg>`,
+  file:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`,
+  folder:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>`,
+  folderOpen:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 1.5-4A2 2 0 0 1 6.4 4H10l2 2h6a2 2 0 0 1 2 2v1"/><path d="M3 9h17.2a1 1 0 0 1 .98 1.2l-1.4 7A2 2 0 0 1 17.8 19H5a2 2 0 0 1-2-2Z"/></svg>`,
+  chevron:`<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>`,
+  edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+  ban:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>`,
+  inbox:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>`,
+  image:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>`,
+  video:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-4v12l-6-4Z"/></svg>`,
+  codeGeneric:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-5 6 5 6"/><path d="m16 6 5 6-5 6"/></svg>`,
+  braces:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4c-1.7 0-2.5.9-2.5 2.4v2.4c0 1.4-.6 2.2-2 2.2 1.4 0 2 .8 2 2.2v2.4c0 1.5.8 2.4 2.5 2.4"/><path d="M15 4c1.7 0 2.5.9 2.5 2.4v2.4c0 1.4.6 2.2 2 2.2-1.4 0-2 .8-2 2.2v2.4c0 1.5-.8 2.4-2.5 2.4"/></svg>`,
+  tag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 8-3.5 4L7 16"/><path d="m17 8 3.5 4-3.5 4"/><path d="m13.5 5-3 14"/></svg>`,
+  hash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 7 20M17 4l-2 16M4 9h16M3 15h16"/></svg>`,
+  coffee:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h13v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 2.5c0 1-1 1-1 2M11 2.5c0 1-1 1-1 2"/></svg>`,
+  database:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v6.5c0 1.7 3.6 3 8 3s8-1.3 8-3V5.5"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>`,
+  list:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6h11M9.5 12h11M9.5 18h11"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>`,
+  markdown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M6 15V9l3 3 3-3v6"/><path d="m16 9 0 6m-2.3-2.3 2.3 2.3 2.3-2.3"/></svg>`,
+  table:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>`,
+  filePdf:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 17v-4h1.3a1.3 1.3 0 1 1 0 2.6H8m5.5 1.4v-4h1c1 0 1.5.7 1.5 2s-.5 2-1.5 2h-1Zm5-4h-2v4m0-2h1.7"/></svg>`,
+  folderZip:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M12 7v1.6l-1 1 1 1v1.6l-1 1 1 1V16"/></svg>`,
+  grassBlock:`<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2" y="8" width="20" height="12" rx="1"/><rect x="2" y="4" width="4" height="4"/><rect x="7" y="2" width="4" height="6"/><rect x="12" y="4" width="4" height="4"/><rect x="17" y="2" width="3" height="6"/></svg>`,
+  appWindow:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 8h18"/><circle cx="17.5" cy="6" r="0.6" fill="currentColor" stroke="none"/><circle cx="19.5" cy="6" r="0.6" fill="currentColor" stroke="none"/><rect x="7" y="11" width="10" height="6" rx="1"/></svg>`,
+  android:`<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 11a6 6 0 0 1 12 0v5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1Z"/><rect x="3.5" y="11" width="2.2" height="4" rx="1.1"/><rect x="18.3" y="11" width="2.2" height="4" rx="1.1"/><rect x="9" y="17" width="2" height="4" rx="1"/><rect x="13" y="17" width="2" height="4" rx="1"/><path d="m7.5 5.5 1.3-2M16.5 5.5l-1.3-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>`,
+  installerDisc:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="10" rx="1.5"/><path d="M7 17h6"/><circle cx="16.5" cy="16.5" r="4"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor" stroke="none"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`,
+  sortIcon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>`,
+  sortAZ:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="10" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">A</text><text x="3" y="21" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">Z</text><path d="M18 3v16m0 0-3-3m3 3 3-3"/></svg>`,
+  sortZA:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="10" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">Z</text><text x="3" y="21" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">A</text><path d="M18 19V3m0 0-3 3m3-3 3 3"/></svg>`,
+  sortSizeUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="15" width="4" height="6" rx="1"/><rect x="9.5" y="9" width="4" height="12" rx="1"/><rect x="16" y="3" width="4" height="18" rx="1"/></svg>`,
+  sortSizeDown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="4" height="18" rx="1"/><rect x="9.5" y="9" width="4" height="12" rx="1"/><rect x="16" y="15" width="4" height="6" rx="1"/></svg>`,
+  sortType:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>`,
+  sortAdded:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
+  chevRight:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`,
+  arrowUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>`,
+  arrowDown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0 6-6m-6 6-6-6"/></svg>`,
+  moreDots:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+  groupBy:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1.2"/><rect x="3" y="15" width="18" height="5" rx="1.2"/></svg>`,
+  dash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 12h12"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>`,
+  chevDown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+  cloud:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 1 1 1.3-9.8A6 6 0 0 1 21 12.5a3.5 3.5 0 0 1-.5 6.5Z"/></svg>`,
+  cloudDownload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 17H8a5 5 0 1 1 1.3-9.8A6 6 0 0 1 21 10.5a3.5 3.5 0 0 1-.5 6.5Z"/><path d="M12 11v7m0 0-3-3m3 3 3-3"/></svg>`,
+  sync:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M21 21v-5h-5"/></svg>`,
 };
-const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
-const PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
-const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
-const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
-const EMPTY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-4-5 4-3-2-5 4"/></svg>';
-const UPLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>';
+function setIcon(id,name){const el=document.getElementById(id);if(el)el.innerHTML=ICONS[name];}
+setIcon('iconChest','chest');
+setIcon('iconUpload','upload');
+setIcon('iconEmpty','inbox');
+setIcon('sortBtnIcon','sortIcon');
+setIcon('sortBtnChev','chevDown');
+setIcon('siName','sortAZ');       setIcon('chName','check');
+setIcon('siModified','sortAdded');setIcon('chModified','check');
+setIcon('siType','sortType');     setIcon('chType','check');
+setIcon('siMore','moreDots');     setIcon('moreArrow','chevRight');
+setIcon('siSize','sortSizeUp');   setIcon('chSize','check');
+setIcon('siAdded','sortAdded');   setIcon('chAdded','check');
+setIcon('siAsc','arrowUp');       setIcon('chAsc','check');
+setIcon('siDesc','arrowDown');    setIcon('chDesc','check');
+setIcon('siGroup','groupBy');     setIcon('groupArrow','chevRight');
+setIcon('siGroupNone','dash');    setIcon('chGroupNone','check');
+setIcon('siGroupType','sortType');setIcon('chGroupType','check');
 
-/* Replace with your own Firebase project's config to enable cross-device sync.
-   Get this from the Firebase console: Project settings -> General -> Your apps -> SDK setup.
-   Also make sure Realtime Database is enabled for the project (Build -> Realtime Database). */
-const firebaseConfig = {
-  apiKey: "AIzaSyByortC03U9iUZk1RA3Hk1p83_-oAmAtYQ",
-  authDomain: "maps-and-more-by-masterteddy.firebaseapp.com",
-  databaseURL: "https://maps-and-more-by-masterteddy-default-rtdb.firebaseio.com",
-  projectId: "maps-and-more-by-masterteddy",
-  storageBucket: "maps-and-more-by-masterteddy.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "1:451484523963:web:cf39feaf4d314a6540789e"
-};
-const firebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY" &&
-  firebaseConfig.databaseURL.indexOf("YOUR_PROJECT") === -1;
-let linksRef = null;
-
-function loadScript(src){
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Failed to load ' + src));
-    document.head.appendChild(s);
-  });
-}
-async function loadFirebaseSDK(){
-  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
-}
-
-const state = { theme:'light', devMode:false, links:[], editingId:null, selectedIcon:'none', customIcon:null, mode:'edit' };
-
-const $ = (id) => document.getElementById(id);
-
-function setSyncStatus(status){
-  const dot = $('syncDot'), label = $('syncLabel');
-  if(!dot) return;
-  dot.className = 'sync-dot ' + status;
-  label.textContent = status === 'online' ? 'Synced'
-    : status === 'offline' ? 'Offline'
-    : status === 'error' ? 'Sync error'
-    : 'Local only';
-}
-
-async function storageGet(key){
-  try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
-  catch(e){ return null; }
-}
-async function storageSet(key, value){
-  try{ await window.storage.set(key, value, false); }catch(e){}
-}
-
-async function loadState(){
-  const t = await storageGet('theme');
-  if(t){ try{ state.theme = JSON.parse(t); }catch(e){} }
-  applyTheme();
-  await initSync();
-}
-
-async function initSync(){
-  if(firebaseConfigured){
-    try{
-      if(typeof firebase === 'undefined') await loadFirebaseSDK();
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
-      linksRef = db.ref('vaultLinks');
-      db.ref('.info/connected').on('value', (snap) => {
-        setSyncStatus(snap.val() ? 'online' : 'offline');
-      });
-      linksRef.on('value', (snapshot) => {
-        const val = snapshot.val();
-        state.links = val ? Object.keys(val).map((id) => Object.assign({ id }, val[id])) : [];
-        renderLinks();
-      });
-      return;
-    }catch(e){
-      console.warn('Firebase init failed, falling back to local storage.', e);
-      linksRef = null;
-    }
-  }
-  setSyncStatus('local');
-  const l = await storageGet('links');
-  if(l){ try{ state.links = JSON.parse(l); }catch(e){ state.links = []; } }
-  else { state.links = []; }
-  renderLinks();
-}
-
-/* Persists a link either to Firebase (if configured) or to local artifact storage. */
-function reportSyncError(action, e){
-  console.error('Firebase ' + action + ' failed:', e);
-  setSyncStatus('error');
-  const code = e && e.code ? e.code : '';
-  let hint = e && e.message ? e.message : 'Unknown error.';
-  if(code === 'PERMISSION_DENIED' || /permission/i.test(hint)){
-    hint = 'Permission denied. Check your Realtime Database rules in the Firebase console — they likely need to allow write access.';
-  }
-  alert('Could not ' + action + ' (sync error): ' + hint);
-}
-async function persistLink(id, data){
-  if(linksRef){
-    await linksRef.child(id).set(data);
-  } else {
-    const idx = state.links.findIndex((l) => l.id === id);
-    if(idx > -1) state.links[idx] = Object.assign({ id }, data);
-    else state.links.push(Object.assign({ id }, data));
-    await storageSet('links', JSON.stringify(state.links));
-    renderLinks();
-  }
-}
-async function removeLink(id){
-  if(linksRef){
-    await linksRef.child(id).remove();
-  } else {
-    state.links = state.links.filter((l) => l.id !== id);
-    await storageSet('links', JSON.stringify(state.links));
-    renderLinks();
-  }
-}
-
+/* ---------------- Theme ---------------- */
+let theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 function applyTheme(){
-  document.documentElement.setAttribute('data-theme', state.theme);
-  $('themeToggle').innerHTML = state.theme === 'light' ? MOON : SUN;
+  document.documentElement.setAttribute('data-theme', theme);
+  setIcon('themeToggle', theme === 'dark' ? 'sun' : 'moon');
 }
-
-$('themeToggle').addEventListener('click', () => {
-  state.theme = state.theme === 'light' ? 'dark' : 'light';
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  theme = theme === 'dark' ? 'light' : 'dark';
   applyTheme();
-  storageSet('theme', JSON.stringify(state.theme));
 });
+applyTheme();
 
-/* ---------- password gate ---------- */
-$('gateForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const val = $('gateInput').value.trim();
-  let hash;
-  try{
-    hash = await sha256Hex(val);
-  }catch(err){
-    console.error('Could not hash passcode — crypto.subtle needs a secure context (https or localhost).', err);
-    alert('Could not verify the passcode here. This page needs to be served over HTTPS (like GitHub Pages) for that check to work.');
-    return;
-  }
-  if(hash === DEV_PASSCODE_HASH){
-    state.devMode = true;
-    $('gateSection').hidden = true;
-    $('devBar').hidden = false;
-    $('addLinkBtn').hidden = false;
-    $('gateError').hidden = true;
-    $('gateInput').value = '';
-    renderLinks();
-  } else {
-    $('gateError').hidden = false;
-    $('gateInput').value = '';
-    $('gateSection').classList.remove('shake');
-    void $('gateSection').offsetWidth;
-    $('gateSection').classList.add('shake');
-    $('gateInput').focus();
-  }
-});
+/* ---------------- Helpers ---------------- */
+function formatBytes(n){
+  if(n === 0 || n === null || n === undefined) return n === 0 ? '0 B' : '—';
+  const u = ['B','KB','MB','GB','TB']; let i=0; let v=n;
+  while(v>=1024 && i<u.length-1){v/=1024;i++;}
+  return (v>=10||i===0? Math.round(v): v.toFixed(1))+' '+u[i];
+}
+function getExt(name){ const p = name.split('.'); return p.length>1 ? p.pop().toLowerCase() : ''; }
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-$('relockBtn').addEventListener('click', () => {
-  state.devMode = false;
-  $('gateSection').hidden = false;
-  $('devBar').hidden = true;
-  $('addLinkBtn').hidden = true;
-  renderLinks();
-});
+const CODE_LANG_MAP = {
+  js:'javascript',mjs:'javascript',cjs:'javascript',jsx:'javascript',ts:'typescript',tsx:'typescript',
+  py:'python',java:'java',c:'c',h:'c',cpp:'cpp',cc:'cpp',hpp:'cpp',cs:'csharp',go:'go',rs:'rust',
+  rb:'ruby',php:'php',html:'xml',htm:'xml',xhtml:'xml',xml:'xml',css:'css',scss:'scss',less:'less',
+  json:'json',yml:'yaml',yaml:'yaml',sh:'bash',bash:'bash',zsh:'bash',sql:'sql',kt:'kotlin',kts:'kotlin',
+  swift:'swift',lua:'lua',pl:'perl',r:'r',dart:'dart',gradle:'groovy',groovy:'groovy',md:'markdown',
+  markdown:'markdown',toml:'ini',ini:'ini',bat:'dos',cmd:'dos',ps1:'powershell',vue:'xml',svg:'xml',
+  scala:'scala',hs:'haskell',vb:'vbnet',asm:'x86asm',diff:'diff',patch:'diff',nginx:'nginx',proto:'protobuf',
+};
+const TEXT_EXTS = new Set(['txt','log','csv','tsv','cfg','conf','env','properties','gitignore','gitattributes','editorconfig','lic','license','nfo']);
+const NAME_LANG_MAP = {dockerfile:'dockerfile',makefile:'makefile','cmakelists.txt':'cmake'};
+const ZIP_EXTS = new Set(['zip','jar','war','ear','mcworld','mcpack','mcaddon','mctemplate']);
+const OTHER_ARCHIVE_EXTS = new Set(['rar','7z','tar','gz','tgz','bz2','xz','z']);
+const DISK_EXTS = new Set(['iso','img','dmg','vhd','vhdx','bin']);
+const EXEC_EXTS = new Set(['exe','msi','apk','app','deb','rpm','run','sh.exe']);
+const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','webp','bmp','ico','avif']);
+const VIDEO_EXTS = new Set(['mp4','webm','ogv','mov','m4v']);
 
-/* ---------- markdown ---------- */
-function escapeHtml(str){
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function classify(name){
+  const ext = getExt(name);
+  const lower = name.toLowerCase();
+  let result;
+  if(ZIP_EXTS.has(ext)) result = {kind:'zip'};
+  else if(IMAGE_EXTS.has(ext)) result = {kind:'image', label: ext.toUpperCase()+' image'};
+  else if(VIDEO_EXTS.has(ext)) result = {kind:'video', label: ext.toUpperCase()+' video'};
+  else if(OTHER_ARCHIVE_EXTS.has(ext)) result = {kind:'archive-unsupported', label: ext.toUpperCase()+' archive'};
+  else if(DISK_EXTS.has(ext)) result = {kind:'disk', label: ext.toUpperCase()+' disk image'};
+  else if(EXEC_EXTS.has(ext)) result = {kind:'exec', label: ext.toUpperCase()+' executable'};
+  else if(NAME_LANG_MAP[lower]) result = {kind:'code', lang: NAME_LANG_MAP[lower]};
+  else if(CODE_LANG_MAP[ext]) result = {kind:'code', lang: CODE_LANG_MAP[ext]};
+  else if(TEXT_EXTS.has(ext) || ext === '') result = {kind:'text'};
+  else result = {kind:'other', label: ext ? ('.'+ext+' file') : 'file'};
+  result.ext = ext;
+  result.name = name;
+  return result;
 }
-function extractYouTubeId(url){
-  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
-  return m ? m[1] : null;
-}
-function videoEmbedHtml(rawUrl){
-  const ytId = extractYouTubeId(rawUrl);
-  const safeUrl = escapeHtml(rawUrl);
-  if(ytId){
-    return '<div class="md-video"><iframe src="https://www.youtube.com/embed/' + ytId + '" title="Video" allowfullscreen loading="lazy"></iframe></div>';
-  }
-  return '<a class="md-video-link" href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">Watch video</a>';
-}
-function inlineFormat(text){
-  return text
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    .replace(/`(.+?)`/g, '<code>$1</code>');
-}
-function renderMarkdown(src){
-  const rawLines = (src || '').split('\n');
-  let html = '';
-  let listType = null;
-  function closeList(){
-    if(listType){ html += '</' + listType + '>'; listType = null; }
-  }
-  rawLines.forEach((rawLine) => {
-    const videoMatch = rawLine.match(/^!video\[[^\]]*\]\((.+?)\)\s*$/);
-    if(videoMatch){
-      closeList();
-      html += videoEmbedHtml(videoMatch[1].trim());
-      return;
-    }
-    const line = escapeHtml(rawLine);
 
-    const hMatch = line.match(/^(#{1,3})\s+(.*)$/);
-    if(hMatch){
-      closeList();
-      const tag = 'h' + hMatch[1].length;
-      html += '<' + tag + '>' + inlineFormat(hMatch[2]) + '</' + tag + '>';
-      return;
-    }
-    const checkMatch = line.match(/^[-*]\s\[([ xX])\]\s+(.*)$/);
-    if(checkMatch){
-      if(listType !== 'ul-check'){ closeList(); html += '<ul class="md-checklist">'; listType = 'ul-check'; }
-      const checked = /x/i.test(checkMatch[1]);
-      html += '<li><input type="checkbox" disabled' + (checked ? ' checked' : '') + '> ' + inlineFormat(checkMatch[2]) + '</li>';
-      return;
-    }
-    const bulletMatch = line.match(/^[-*]\s+(.*)$/);
-    if(bulletMatch){
-      if(listType !== 'ul'){ closeList(); html += '<ul>'; listType = 'ul'; }
-      html += '<li>' + inlineFormat(bulletMatch[1]) + '</li>';
-      return;
-    }
-    const numMatch = line.match(/^\d+\.\s+(.*)$/);
-    if(numMatch){
-      if(listType !== 'ol'){ closeList(); html += '<ol>'; listType = 'ol'; }
-      html += '<li>' + inlineFormat(numMatch[1]) + '</li>';
-      return;
-    }
-    closeList();
-    if(line.trim() === '') return;
-    html += '<p>' + inlineFormat(line) + '</p>';
-  });
-  closeList();
-  return html || '<p style="color:var(--faint)">Nothing to preview yet.</p>';
-}
-function applyFormat(type){
-  const ta = $('descInput');
-  const val = ta.value;
-  let start = ta.selectionStart, end = ta.selectionEnd;
-  const selected = val.slice(start, end);
+const KIND_ICON = {zip:'folderZip', code:'codeGeneric', text:'fileText', disk:'disk', exec:'terminal', 'archive-unsupported':'archive', other:'file', image:'image', video:'video'};
+const KIND_CLASS = {zip:'kind-zip', code:'kind-code', text:'kind-text', disk:'kind-disk', exec:'kind-exec', 'archive-unsupported':'kind-archive-unsupported', other:'kind-other', image:'kind-image', video:'kind-video'};
+const KIND_LABEL = {zip:'Archive', code:'Code', text:'Text', disk:'Disk image', exec:'Executable', 'archive-unsupported':'Archive', other:'File', image:'Image', video:'Video'};
 
-  if(type === 'h1' || type === 'h2' || type === 'h3'){
-    const level = { h1:1, h2:2, h3:3 }[type];
-    let lineStart = val.lastIndexOf('\n', start - 1) + 1;
-    let lineEnd = val.indexOf('\n', start);
-    if(lineEnd === -1) lineEnd = val.length;
-    const line = val.slice(lineStart, lineEnd);
-    const stripped = line.replace(/^#{1,3}\s?/, '');
-    const newLine = '#'.repeat(level) + ' ' + stripped;
-    ta.value = val.slice(0, lineStart) + newLine + val.slice(lineEnd);
-    const diff = newLine.length - line.length;
-    ta.setSelectionRange(start + diff, end + diff);
-    ta.focus();
-    return;
-  }
-  if(type === 'bold' || type === 'italic' || type === 'boldItalic' || type === 'code' || type === 'strike'){
-    const wrap = { bold:'**', italic:'*', boldItalic:'***', code:'`', strike:'~~' }[type];
-    ta.value = val.slice(0, start) + wrap + selected + wrap + val.slice(end);
-    ta.setSelectionRange(start + wrap.length, end + wrap.length);
-    ta.focus();
-    return;
-  }
-  if(type === 'bulletList' || type === 'numberList' || type === 'checklist'){
-    let lineStart = val.lastIndexOf('\n', start - 1) + 1;
-    let blockEnd = val.indexOf('\n', Math.max(end - 1, lineStart));
-    if(blockEnd === -1) blockEnd = val.length;
-    const block = val.slice(lineStart, blockEnd);
-    const lines = block.split('\n');
-    const stripPrefix = (l) => l.replace(/^(\d+\.\s+|[-*]\s(\[[ xX]\]\s)?)/, '');
-    let newLines;
-    if(type === 'numberList'){
-      newLines = lines.map((l, i) => (i + 1) + '. ' + stripPrefix(l));
-    } else if(type === 'checklist'){
-      newLines = lines.map((l) => '- [ ] ' + stripPrefix(l));
-    } else {
-      newLines = lines.map((l) => '- ' + stripPrefix(l));
-    }
-    const newBlock = newLines.join('\n');
-    ta.value = val.slice(0, lineStart) + newBlock + val.slice(blockEnd);
-    const diff = newBlock.length - block.length;
-    ta.setSelectionRange(start, end + diff);
-    ta.focus();
-    return;
-  }
-  if(type === 'linkInsert' || type === 'imageInsert'){
-    const isImage = type === 'imageInsert';
-    const url = prompt(isImage ? 'Image URL:' : 'Link URL:', 'https://');
-    if(!url) { ta.focus(); return; }
-    let label = selected;
-    if(!label){
-      label = prompt(isImage ? 'Alt text (optional):' : 'Link text:', isImage ? '' : url) || (isImage ? '' : url);
-    }
-    const md = (isImage ? '!' : '') + '[' + label + '](' + url + ')';
-    ta.value = val.slice(0, start) + md + val.slice(end);
-    ta.setSelectionRange(start, start + md.length);
-    ta.focus();
-    return;
-  }
-  if(type === 'videoInsert'){
-    const url = prompt('Video URL (YouTube link works best):', 'https://');
-    if(!url) { ta.focus(); return; }
-    const needsNewlineBefore = start > 0 && val[start - 1] !== '\n';
-    const md = (needsNewlineBefore ? '\n' : '') + '!video[](' + url + ')\n';
-    ta.value = val.slice(0, start) + md + val.slice(end);
-    const pos = start + md.length;
-    ta.setSelectionRange(pos, pos);
-    ta.focus();
-    return;
-  }
-}
-document.querySelectorAll('#mdToolbar .tb-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if(state.mode === 'preview') setEditorMode('edit');
-    applyFormat(btn.dataset.type);
-    markDirty();
-  });
-});
-function setEditorMode(mode){
-  state.mode = mode;
-  const isEdit = mode === 'edit';
-  $('editModeBtn').classList.toggle('active', isEdit);
-  $('previewModeBtn').classList.toggle('active', !isEdit);
-  $('descInput').hidden = !isEdit;
-  $('descPreview').hidden = isEdit;
-  if(!isEdit) $('descPreview').innerHTML = renderMarkdown($('descInput').value);
-}
-$('editModeBtn').addEventListener('click', () => setEditorMode('edit'));
-$('previewModeBtn').addEventListener('click', () => setEditorMode('preview'));
+// Specific icon per extension, layered on top of the kind-level icon/color.
+// "icon" points at a hand-drawn SVG in ICONS; "glyph" renders a short mono-spaced
+// label inside the same badge shape for languages without a dedicated symbol.
+const EXT_ICON_OVERRIDE = {
+  js:'braces', mjs:'braces', cjs:'braces', jsx:'braces', ts:'braces', tsx:'braces', json:'braces',
+  html:'tag', htm:'tag', xhtml:'tag', xml:'tag', vue:'tag', svg:'tag',
+  css:'hash', scss:'hash', less:'hash',
+  java:'coffee', jar:'coffee',
+  mcpack:'grassBlock', mcworld:'grassBlock', mcaddon:'grassBlock', mctemplate:'grassBlock',
+  exe:'appWindow', apk:'android', msi:'installerDisc',
+  sh:'terminal', bash:'terminal', zsh:'terminal', ps1:'terminal', bat:'terminal', cmd:'terminal',
+  sql:'database',
+  yml:'list', yaml:'list', toml:'list', ini:'list', cfg:'list', conf:'list', env:'list', properties:'list',
+  md:'markdown', markdown:'markdown',
+  csv:'table', tsv:'table',
+  pdf:'filePdf',
+  log:'fileText', txt:'fileText',
+};
+const EXT_GLYPH_OVERRIDE = {
+  py:'PY', rb:'RB', php:'PHP', go:'GO', rs:'RS', cs:'C#', cpp:'C++', cc:'C++', hpp:'C++',
+  c:'C', h:'C', kt:'KT', kts:'KT', swift:'SW', dart:'DA', lua:'LU', r:'R', scala:'SC',
+  pl:'PL', hs:'HS', vb:'VB', asm:'ASM', proto:'PB', diff:'±', patch:'±', groovy:'GV', gradle:'GV',
+};
 
-/* ---------- icon picker ---------- */
-function updateIconPreview(){
-  const box = $('iconPreviewBox');
-  if(state.selectedIcon === 'custom' && state.customIcon){
-    box.className = 'icon-preview-box';
-    box.innerHTML = '<img src="' + state.customIcon + '" alt="">';
-  } else if(state.selectedIcon && state.selectedIcon !== 'none' && ICONS[state.selectedIcon]){
-    box.className = 'icon-preview-box';
-    box.innerHTML = ICONS[state.selectedIcon];
-  } else {
-    box.className = 'icon-preview-box empty';
-    box.innerHTML = EMPTY_ICON;
-  }
+function fileIconMarkup(info){
+  const ext = info.ext;
+  if(EXT_ICON_OVERRIDE[ext]) return ICONS[EXT_ICON_OVERRIDE[ext]];
+  if(info.kind === 'code' && EXT_GLYPH_OVERRIDE[ext]) return textGlyph(EXT_GLYPH_OVERRIDE[ext]);
+  return ICONS[KIND_ICON[info.kind]];
 }
-$('uploadIconBtn').addEventListener('click', () => $('iconFileInput').click());
-$('removeIconBtn').addEventListener('click', () => {
-  state.selectedIcon = 'none';
-  state.customIcon = null;
-  markDirty();
-  renderIconPicker();
-  updateIconPreview();
-});
-function renderIconPicker(){
-  const wrap = $('iconPicker');
-  wrap.innerHTML = '';
-
-  const noneBtn = document.createElement('button');
-  noneBtn.type = 'button';
-  noneBtn.className = 'icon-opt none-opt' + (state.selectedIcon === 'none' ? ' selected' : '');
-  noneBtn.innerHTML = EMPTY_ICON;
-  noneBtn.title = 'No icon';
-  noneBtn.addEventListener('click', () => {
-    state.selectedIcon = 'none';
-    state.customIcon = null;
-    markDirty();
-    renderIconPicker();
-    updateIconPreview();
-  });
-  wrap.appendChild(noneBtn);
-
-  Object.keys(ICONS).forEach(key => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'icon-opt' + (state.selectedIcon === key ? ' selected' : '');
-    b.innerHTML = ICONS[key];
-    b.title = key;
-    b.addEventListener('click', () => {
-      state.selectedIcon = key;
-      state.customIcon = null;
-      markDirty();
-      renderIconPicker();
-      updateIconPreview();
-    });
-    wrap.appendChild(b);
-  });
-
-  const uploadBtn = document.createElement('button');
-  uploadBtn.type = 'button';
-  if(state.selectedIcon === 'custom' && state.customIcon){
-    uploadBtn.className = 'icon-opt selected';
-    uploadBtn.innerHTML = '<img src="' + state.customIcon + '" alt="" />';
-    uploadBtn.title = 'Uploaded icon (click to replace)';
-  } else {
-    uploadBtn.className = 'icon-opt upload-opt';
-    uploadBtn.innerHTML = UPLOAD_ICON;
-    uploadBtn.title = 'Upload icon';
-  }
-  uploadBtn.addEventListener('click', () => $('iconFileInput').click());
-  wrap.appendChild(uploadBtn);
+function textGlyph(label){
+  const size = label.length > 2 ? 7 : 9;
+  return `<svg viewBox="0 0 24 24"><text x="12" y="15.5" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="${size}" font-weight="700" fill="currentColor">${label}</text></svg>`;
 }
-$('iconFileInput').addEventListener('change', (e) => {
-  const file = e.target.files && e.target.files[0];
-  if(!file) return;
-  if(file.size > 1024 * 1024){
-    alert('Please choose an image smaller than 1MB.');
-    e.target.value = '';
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    state.customIcon = reader.result;
-    state.selectedIcon = 'custom';
-    markDirty();
-    renderIconPicker();
-    updateIconPreview();
-  };
-  reader.readAsDataURL(file);
-  e.target.value = '';
-});
 
-/* ---------- unsaved-edits tracking ---------- */
-let modalDirty = false;
-function markDirty(){
-  modalDirty = true;
-  $('unsavedBadge').hidden = false;
-}
-function clearDirty(){
-  modalDirty = false;
-  $('unsavedBadge').hidden = true;
-}
-['linkTitleInput','linkUrlInput','descInput'].forEach((id) => {
-  $(id).addEventListener('input', markDirty);
-});
 
-/* ---------- modal ---------- */
-function openModal(editId){
-  state.editingId = editId || null;
-  if(editId){
-    const link = state.links.find(l => l.id === editId);
-    $('modalTitle').textContent = 'Edit link';
-    $('linkTitleInput').value = link.title;
-    $('linkUrlInput').value = link.url;
-    $('descInput').value = link.desc || '';
-    state.selectedIcon = link.icon || 'none';
-    state.customIcon = link.customIcon || null;
-    $('deleteLinkBtn').hidden = false;
-  } else {
-    $('modalTitle').textContent = 'Add link';
-    $('linkTitleInput').value = '';
-    $('linkUrlInput').value = '';
-    $('descInput').value = '';
-    state.selectedIcon = 'none';
-    state.customIcon = null;
-    $('deleteLinkBtn').hidden = true;
-  }
-  renderIconPicker();
-  updateIconPreview();
-  setEditorMode('edit');
-  clearDirty();
-  $('linkModal').hidden = false;
-  $('linkTitleInput').focus();
-}
-function closeModal(){ $('linkModal').hidden = true; }
-function attemptClose(){
-  if(modalDirty){
-    if(!confirm('You have unsaved edits. Discard them and close?')) return;
-  }
-  closeModal();
-}
-$('modalClose').addEventListener('click', attemptClose);
-$('linkModal').addEventListener('click', (e) => { if(e.target === $('linkModal')) attemptClose(); });
-$('addLinkBtn').addEventListener('click', () => openModal(null));
+const MAX_PREVIEW = 2 * 1024 * 1024; // 2MB
 
-$('saveLinkBtn').addEventListener('click', async () => {
-  const title = $('linkTitleInput').value.trim();
-  let url = $('linkUrlInput').value.trim();
-  if(!title || !url){ return; }
-  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  const desc = $('descInput').value;
-  const id = state.editingId || crypto.randomUUID();
-  const data = { title, url, icon: state.selectedIcon, desc, customIcon: state.customIcon || null };
-  clearDirty();
-  closeModal();
-  try{
-    await persistLink(id, data);
-  }catch(e){
-    reportSyncError('save the link', e);
+/* ---------------- State ---------------- */
+let files = [];   // {id, file, info, addedAt}
+let activeId = null;
+let idCounter = 0;
+let progCounter = 0;
+let sortField = 'added';
+let sortDir = 'asc';
+let groupBy = 'none';
+
+/* ---------------- Cloud sync (Firebase Realtime Database + Catbox.moe) ---------------- */
+const CLOUD_SIZE_CAP = 5 * 1024 * 1024;      // under this: base64 straight into RTDB
+const CATBOX_SIZE_CAP = 100 * 1024 * 1024;   // 5MB–100MB: Catbox.moe, url stored in RTDB (Cloudflare Worker caps body size at ~100MB)
+const CATBOX_UPLOAD_URL = 'https://chest-catbox-proxy.masterteddy1112.workers.dev/';
+// Catbox's file CDN doesn't send CORS headers, so any fetch() (previews,
+// forced downloads) has to go through the same Worker used for uploads.
+function catboxProxyUrl(fileUrl){
+  return CATBOX_UPLOAD_URL + (CATBOX_UPLOAD_URL.endsWith('/') ? '' : '/') + '?url=' + encodeURIComponent(fileUrl);
+}
+let db = null; // set once Firebase initializes successfully, see bottom of file
+let firebaseConfiguredFlag = false; // set at bottom of file
+
+const STORAGE_LABEL = {catbox:'Stored in cloud', rtdb:'Synced', local:'Local only'};
+const STORAGE_ICON  = {catbox:'cloud', rtdb:'sync', local:'disk'};
+
+function arrayBufferToBase64(buffer){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
   }
-});
-$('deleteLinkBtn').addEventListener('click', async () => {
-  if(!state.editingId) return;
-  if(confirm('Delete this link?')){
-    const id = state.editingId;
-    clearDirty();
-    closeModal();
+  return btoa(binary);
+}
+function base64ToArrayBuffer(base64){
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+function filesRef(){
+  return db ? db.ref('files') : null;
+}
+
+// Keeps every client's file list in sync with Firebase, and is also what
+// repopulates the list after a refresh (child_added fires for existing
+// records the moment the listener attaches).
+function initFileSync(){
+  const ref = filesRef();
+  if(!ref) return;
+  ref.on('child_added', snap=>{
+    const key = snap.key;
+    if(files.some(f=>f.id===key)) return; // already have it
+    const data = snap.val();
+    if(!data) return;
+    const storage = data.storage || 'rtdb'; // legacy records had no storage field, but did have base64 data
+    const info = classify(data.name);
     try{
-      await removeLink(id);
-    }catch(e){
-      reportSyncError('delete the link', e);
+      if(storage === 'catbox'){
+        // No bytes to reconstruct — just carry the metadata + Catbox URL.
+        const file = {name: data.name, size: data.size || 0, type: data.type || '', lastModified: data.lastModified || Date.now()};
+        files.push({id: key, file, info, addedAt: data.addedAt || Date.now(), fbKey: key, storage: 'catbox', url: data.url});
+      } else {
+        const buffer = base64ToArrayBuffer(data.data);
+        const file = new File([buffer], data.name, {type: data.type || '', lastModified: data.lastModified || Date.now()});
+        files.push({id: key, file, info, addedAt: data.addedAt || Date.now(), fbKey: key, storage: 'rtdb'});
+      }
+      applySort();
+      renderFileList();
+      if(activeId === null) selectFile(files[0].id);
+    }catch(err){
+      console.error('Failed to decode synced file', data && data.name, err);
     }
-  }
-});
-
-/* ---------- links grid ---------- */
-function hostnameOf(url){
-  try{ return new URL(url).hostname.replace(/^www\./,''); }catch(e){ return url; }
-}
-function iconMarkupFor(link){
-  if(link.icon === 'custom' && link.customIcon){
-    return { html: '<img src="' + link.customIcon + '" alt="" />', cls: 'has-image' };
-  }
-  if(link.icon && ICONS[link.icon]){
-    return { html: ICONS[link.icon], cls: '' };
-  }
-  return { html: EMPTY_ICON, cls: 'empty' };
-}
-function renderLinks(){
-  const grid = $('linksGrid');
-  grid.innerHTML = '';
-  $('emptyState').hidden = state.links.length > 0;
-  state.links.forEach(link => {
-    const card = document.createElement('div');
-    card.className = 'link-card neu';
-
-    const main = document.createElement('div');
-    main.className = 'link-card-main';
-    const iconInfo = iconMarkupFor(link);
-    main.innerHTML =
-      '<div class="link-icon' + (iconInfo.cls ? ' ' + iconInfo.cls : '') + '">' + iconInfo.html + '</div>' +
-      '<div class="link-info">' +
-        '<div class="link-title"></div>' +
-        '<div class="link-url"></div>' +
-      '</div>' +
-      '<div class="link-card-actions"></div>';
-    main.querySelector('.link-title').textContent = link.title;
-    main.querySelector('.link-url').textContent = hostnameOf(link.url);
-
-    const actions = main.querySelector('.link-card-actions');
-    if(state.devMode){
-      const editBtn = document.createElement('button');
-      editBtn.className = 'mini-btn'; editBtn.innerHTML = PENCIL; editBtn.title = 'Edit';
-      editBtn.addEventListener('click', (e) => { e.stopPropagation(); openModal(link.id); });
-      const delBtn = document.createElement('button');
-      delBtn.className = 'mini-btn danger'; delBtn.innerHTML = TRASH; delBtn.title = 'Delete';
-      delBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if(confirm('Delete this link?')){
-          try{
-            await removeLink(link.id);
-          }catch(err){
-            reportSyncError('delete the link', err);
-          }
-        }
-      });
-      actions.appendChild(editBtn);
-      actions.appendChild(delBtn);
+  });
+  ref.on('child_removed', snap=>{
+    const key = snap.key;
+    const idx = files.findIndex(f=>f.id===key);
+    if(idx === -1) return;
+    const wasActive = files[idx].id === activeId;
+    files.splice(idx, 1);
+    if(wasActive){
+      activeId = null;
+      if(files.length){ selectFile(files[0].id); }
+      else {
+        document.getElementById('viewer').innerHTML = `
+          <div class="empty-state">
+            <span>${ICONS.inbox}</span>
+            <h2>Nothing open yet</h2>
+            <p>Upload a file on the left. Text and code files open in the reader, archives open in the zip viewer, and everything else just shows up as itself.</p>
+          </div>`;
+      }
     }
-    const chevBtn = document.createElement('button');
-    chevBtn.className = 'chevron-btn'; chevBtn.innerHTML = CHEVRON; chevBtn.title = 'Show description';
-    actions.appendChild(chevBtn);
-
-    const panel = document.createElement('div');
-    panel.className = 'link-desc-panel';
-    const rendered = document.createElement('div');
-    rendered.className = 'md-rendered';
-    rendered.innerHTML = renderMarkdown(link.desc || '');
-    panel.appendChild(rendered);
-
-    chevBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const open = panel.classList.toggle('open');
-      chevBtn.classList.toggle('open', open);
-    });
-    main.addEventListener('click', () => window.open(link.url, '_blank', 'noopener'));
-
-    card.appendChild(main);
-    card.appendChild(panel);
-    grid.appendChild(card);
+    renderFileList();
   });
 }
 
-loadState();
-})();
+/* ---------------- Upload routing: rtdb (base64) / catbox (url) / reject ---------------- */
+function addFiles(fileListObj){
+  const arr = Array.from(fileListObj);
+  if(!arr.length) return;
+  const wrap = document.getElementById('uploadProgressWrap');
+  wrap.classList.add('visible');
+
+  arr.forEach(f=>{
+    const rowId = 'prog'+(progCounter++);
+    const row = document.createElement('div');
+    row.className = 'upload-progress-item';
+    row.id = rowId;
+    row.innerHTML = `
+      <div class="upload-progress-name">${escapeHtml(f.name)}</div>
+      <div class="upload-progress-bar-track"><div class="upload-progress-bar-fill" style="width:0%"></div></div>
+      <div class="upload-progress-pct"><span class="upload-progress-detail">&nbsp;</span><span class="upload-progress-pctnum">0%</span></div>`;
+    wrap.appendChild(row);
+
+    const fill = row.querySelector('.upload-progress-bar-fill');
+    const detailEl = row.querySelector('.upload-progress-detail');
+    const pctNumEl = row.querySelector('.upload-progress-pctnum');
+
+    // Files over the hard cap are rejected outright — no upload attempt at all.
+    if(f.size > CATBOX_SIZE_CAP){
+      row.classList.add('is-error');
+      fill.style.width = '100%';
+      detailEl.textContent = '';
+      pctNumEl.textContent = '';
+      const msg = document.createElement('div');
+      msg.className = 'upload-progress-error-msg';
+      msg.textContent = 'Max upload size is 100 MB';
+      row.appendChild(msg);
+      setTimeout(()=>{
+        row.remove();
+        if(!wrap.children.length) wrap.classList.remove('visible');
+      }, 3200);
+      return;
+    }
+
+    // Tracks loaded/total bytes and derives a smoothed transfer speed to show
+    // alongside the percentage (e.g. "12.3 MB of 45.0 MB · 3.1 MB/s").
+    let lastLoaded = 0, lastTime = performance.now(), smoothedSpeed = 0;
+    const setProgress = (loaded, total)=>{
+      const pct = total ? Math.max(1, Math.min(100, (loaded / total) * 100)) : 0;
+      fill.style.width = pct + '%';
+      pctNumEl.textContent = Math.round(pct) + '%';
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      if(dt > 0.15){
+        const instSpeed = (loaded - lastLoaded) / dt; // bytes/sec
+        smoothedSpeed = smoothedSpeed ? (smoothedSpeed*0.7 + instSpeed*0.3) : instSpeed;
+        lastLoaded = loaded;
+        lastTime = now;
+      }
+      const speedStr = smoothedSpeed > 0 ? formatBytes(smoothedSpeed) + '/s' : '…';
+      detailEl.textContent = total
+        ? `${formatBytes(loaded)} of ${formatBytes(total)} · ${speedStr}`
+        : '';
+    };
+    // Legacy percent-only callers (kept for anything that doesn't have byte counts).
+    const setPct = pct=>{
+      fill.style.width = pct + '%';
+      pctNumEl.textContent = Math.round(pct) + '%';
+    };
+
+    const finishRow = (note, isError)=>{
+      setPct(100);
+      detailEl.textContent = '';
+      if(note){
+        const n = document.createElement('div');
+        n.className = isError ? 'upload-progress-error-msg' : '';
+        n.style.cssText = isError ? '' : 'font-size:10.5px;color:var(--text-muted);margin-top:2px;';
+        n.textContent = note;
+        row.appendChild(n);
+        if(isError) row.classList.add('is-error');
+      }
+      setTimeout(()=>{
+        row.remove();
+        if(!wrap.children.length) wrap.classList.remove('visible');
+      }, note ? 1800 : 300);
+    };
+
+    const addToList = (entry)=>{
+      files.push(entry);
+      applySort();
+      renderFileList();
+      if(activeId === null) selectFile(files[0].id);
+    };
+
+    const info = classify(f.name);
+    const addedAt = Date.now();
+
+    if(f.size >= CLOUD_SIZE_CAP){
+      // 5MB–100MB tier: Catbox.moe direct upload, URL saved to Firebase.
+      uploadToCatbox(f, setProgress).then(url=>{
+        const ref = filesRef();
+        if(ref){
+          ref.push({
+            name: f.name, size: f.size, type: f.type || '',
+            lastModified: f.lastModified || addedAt, addedAt,
+            storage: 'catbox', url
+          }).then(()=>{
+            finishRow(null, false); // list updates via child_added listener
+          }).catch(err=>{
+            console.error('Firebase metadata save failed', err);
+            addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'catbox', url});
+            finishRow('Uploaded to cloud, but not synced across devices.', false);
+          });
+        } else {
+          addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'catbox', url});
+          finishRow('Stored in cloud — not synced (Firebase offline).', false);
+        }
+      }).catch(err=>{
+        console.error('Catbox upload failed', err);
+        addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'local'});
+        finishRow('Cloud upload failed — stored locally only.', true);
+      });
+      return;
+    }
+
+    // Under 5MB: read bytes, base64-encode, push straight into Firebase RTDB.
+    const reader = new FileReader();
+    reader.onprogress = e=>{
+      if(e.lengthComputable) setProgress(e.loaded, e.total);
+    };
+    reader.onerror = ()=>{
+      addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'local'});
+      finishRow('Could not read file — stored locally only.', true);
+    };
+    reader.onload = ()=>{
+      const ref = filesRef();
+      if(!ref){
+        addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'local'});
+        finishRow(firebaseConfiguredFlag ? 'Stored locally only — Firebase not connected.' : null, false);
+        return;
+      }
+      const base64 = arrayBufferToBase64(reader.result);
+      ref.push({
+        name: f.name, size: f.size, type: f.type || '',
+        lastModified: f.lastModified || addedAt, addedAt,
+        storage: 'rtdb', data: base64
+      }).then(()=>{
+        finishRow(null, false); // list updates via child_added listener
+      }).catch(err=>{
+        console.error('Firebase upload failed', err);
+        addToList({id:'f'+(idCounter++), file:f, info, addedAt, fbKey:null, storage:'local'});
+        finishRow('Cloud sync failed — stored locally only.', true);
+      });
+    };
+    reader.readAsArrayBuffer(f);
+  });
+}
+
+// Catbox.moe upload, tied to an account via userhash so files can be deleted later.
+// Leave CATBOX_USERHASH blank to fall back to fully anonymous uploads (no delete capability).
+const CATBOX_USERHASH = '192544a1108005ffbecb9253e';
+
+function uploadToCatbox(file, onProgress){
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append('reqtype', 'fileupload');
+    if(CATBOX_USERHASH) form.append('userhash', CATBOX_USERHASH);
+    form.append('fileToUpload', file);
+    xhr.open('POST', CATBOX_UPLOAD_URL, true);
+    xhr.upload.onprogress = e=>{
+      if(e.lengthComputable) onProgress(e.loaded, e.total);
+    };
+    xhr.onload = ()=>{
+      const text = (xhr.responseText || '').trim();
+      if(xhr.status >= 200 && xhr.status < 300 && text.startsWith('http')){
+        resolve(text);
+      } else {
+        reject(new Error(text || ('Catbox upload failed with status ' + xhr.status)));
+      }
+    };
+    xhr.onerror = ()=> reject(new Error('Network error during Catbox upload'));
+    xhr.send(form);
+  });
+}
+
+// Actually deletes the file off Catbox's servers — only works for files uploaded
+// with a userhash (anonymous uploads can't be deleted via the API at all).
+function deleteFromCatbox(url){
+  if(!CATBOX_USERHASH || !url) return Promise.resolve();
+  const filename = url.split('/').pop();
+  if(!filename) return Promise.resolve();
+  const form = new FormData();
+  form.append('reqtype', 'deletefiles');
+  form.append('userhash', CATBOX_USERHASH);
+  form.append('files', filename);
+  return fetch(CATBOX_UPLOAD_URL, {method:'POST', body: form})
+    .catch(err=>console.error('Catbox delete failed', err));
+}
+
+/* ---------------- Sorting (Windows 11 style: field + order + group by) ---------------- */
+const FIELD_CMP = {
+  name:     (a,b)=> a.file.name.localeCompare(b.file.name, undefined, {numeric:true, sensitivity:'base'}),
+  modified: (a,b)=> (a.file.lastModified||0) - (b.file.lastModified||0),
+  type:     (a,b)=> (KIND_LABEL[a.info.kind]||'').localeCompare(KIND_LABEL[b.info.kind]||'') || a.file.name.localeCompare(b.file.name),
+  size:     (a,b)=> a.file.size - b.file.size,
+  added:    (a,b)=> a.addedAt - b.addedAt,
+};
+const FIELD_LABELS = { name:'Name', modified:'Date modified', type:'Type', size:'Size', added:'Date added' };
+
+function applySort(){
+  const cmp = FIELD_CMP[sortField] || FIELD_CMP.added;
+  files.sort((a,b)=> sortDir==='asc' ? cmp(a,b) : -cmp(a,b));
+  if(groupBy==='type'){
+    const buckets = new Map();
+    files.forEach(f=>{
+      const key = KIND_LABEL[f.info.kind] || 'Other';
+      if(!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(f);
+    });
+    const keys = Array.from(buckets.keys()).sort((a,b)=>a.localeCompare(b));
+    files = keys.flatMap(k=>buckets.get(k));
+  }
+}
+
+function updateSortUI(){
+  document.getElementById('sortBtnLabel').textContent = 'Sort: ' + FIELD_LABELS[sortField];
+  sortDropdown.querySelectorAll('[data-field]').forEach(o=> o.classList.toggle('active', o.dataset.field===sortField));
+  sortDropdown.querySelectorAll('[data-dir]').forEach(o=> o.classList.toggle('active', o.dataset.dir===sortDir));
+  sortDropdown.querySelectorAll('[data-group]').forEach(o=> o.classList.toggle('active', o.dataset.group===groupBy));
+}
+
+const sortBtn = document.getElementById('sortBtn');
+const sortDropdown = document.getElementById('sortDropdown');
+const moreRow = document.getElementById('moreRow');
+const moreSubmenu = document.getElementById('moreSubmenu');
+const groupRow = document.getElementById('groupRow');
+const groupSubmenu = document.getElementById('groupSubmenu');
+
+function closeSubmenus(){
+  moreSubmenu.classList.remove('open');
+  groupSubmenu.classList.remove('open');
+}
+function closeSortMenu(){
+  sortBtn.classList.remove('open');
+  sortDropdown.classList.remove('open');
+  closeSubmenus();
+}
+
+sortBtn.addEventListener('click', e=>{
+  e.stopPropagation();
+  const opening = !sortDropdown.classList.contains('open');
+  closeSortMenu();
+  if(opening){
+    sortBtn.classList.add('open');
+    sortDropdown.classList.add('open');
+  }
+});
+document.addEventListener('click', e=>{
+  if(!sortDropdown.contains(e.target) && e.target !== sortBtn){
+    closeSortMenu();
+  }
+});
+
+moreRow.addEventListener('click', e=>{
+  e.stopPropagation();
+  const opening = !moreSubmenu.classList.contains('open');
+  closeSubmenus();
+  moreSubmenu.classList.toggle('open', opening);
+});
+groupRow.addEventListener('click', e=>{
+  e.stopPropagation();
+  const opening = !groupSubmenu.classList.contains('open');
+  closeSubmenus();
+  groupSubmenu.classList.toggle('open', opening);
+});
+
+sortDropdown.querySelectorAll('.sort-option[data-field]').forEach(opt=>{
+  opt.addEventListener('click', e=>{
+    e.stopPropagation();
+    sortField = opt.dataset.field;
+    updateSortUI();
+    closeSortMenu();
+    applySort();
+    renderFileList();
+  });
+});
+sortDropdown.querySelectorAll('.sort-option[data-dir]').forEach(opt=>{
+  opt.addEventListener('click', e=>{
+    e.stopPropagation();
+    sortDir = opt.dataset.dir;
+    updateSortUI();
+    closeSortMenu();
+    applySort();
+    renderFileList();
+  });
+});
+sortDropdown.querySelectorAll('.sort-option[data-group]').forEach(opt=>{
+  opt.addEventListener('click', e=>{
+    e.stopPropagation();
+    groupBy = opt.dataset.group;
+    updateSortUI();
+    closeSortMenu();
+    applySort();
+    renderFileList();
+  });
+});
+updateSortUI();
+
+/* ---------------- Delete ---------------- */
+function deleteFile(id){
+  const idx = files.findIndex(f=>f.id===id);
+  if(idx === -1) return;
+  const wasActive = id === activeId;
+  const entry = files[idx];
+  const fbKey = entry.fbKey;
+  files.splice(idx, 1);
+  if(entry.storage === 'catbox' && entry.url){
+    deleteFromCatbox(entry.url); // removes the actual file off Catbox, not just the reference
+  }
+  if(fbKey){
+    const ref = filesRef();
+    if(ref) ref.child(fbKey).remove().catch(err=>console.error('Firebase delete failed', err));
+  }
+  if(wasActive){
+    activeId = null;
+    if(files.length){
+      selectFile(files[0].id);
+    } else {
+      document.getElementById('viewer').innerHTML = `
+        <div class="empty-state">
+          <span>${ICONS.inbox}</span>
+          <h2>Nothing open yet</h2>
+          <p>Upload a file on the left. Text and code files open in the reader, archives open in the zip viewer, and everything else just shows up as itself.</p>
+        </div>`;
+    }
+  }
+  renderFileList();
+}
+
+/* ---------------- File list rendering ---------------- */
+function renderFileList(){
+  const el = document.getElementById('fileList');
+  if(!files.length){
+    el.innerHTML = '<div class="file-list-empty">No files loaded yet.</div>';
+  } else {
+    let lastGroupKey = null;
+    el.innerHTML = files.map(f=>{
+      let headerHtml = '';
+      if(groupBy==='type'){
+        const key = KIND_LABEL[f.info.kind] || 'Other';
+        if(key !== lastGroupKey){
+          lastGroupKey = key;
+          headerHtml = `<div class="file-group-header">${escapeHtml(key)}</div>`;
+        }
+      }
+      return headerHtml + `
+      <div class="file-item ${f.id===activeId?'active':''}" data-id="${f.id}" tabindex="0" role="button">
+        <span class="f-icon ${KIND_CLASS[f.info.kind]}">${fileIconMarkup(f.info)}</span>
+        <span class="f-meta">
+          <div class="f-name">${escapeHtml(f.file.name)}</div>
+          <div class="f-sub">${formatBytes(f.file.size)} · ${f.info.label || (f.info.lang || KIND_LABEL[f.info.kind])}</div>
+          ${f.storage ? `<div class="f-storage st-${f.storage}">${ICONS[STORAGE_ICON[f.storage]]}<span>${STORAGE_LABEL[f.storage]}</span></div>` : ''}
+        </span>
+        <button class="del-btn" data-del-id="${f.id}" title="Delete file" aria-label="Delete ${escapeHtml(f.file.name)}">${ICONS.trash}</button>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('.file-item').forEach(node=>{
+      node.addEventListener('click', ()=> selectFile(node.dataset.id));
+      node.addEventListener('keydown', e=>{ if(e.key==='Enter') selectFile(node.dataset.id); });
+    });
+    el.querySelectorAll('.del-btn').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        deleteFile(btn.dataset.delId);
+      });
+    });
+  }
+  document.getElementById('footCount').textContent = files.length + (files.length===1?' file':' files');
+  document.getElementById('footSize').textContent = formatBytes(files.reduce((a,f)=>a+f.file.size,0));
+}
+
+function downloadFile(file){
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url; a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+// Catbox-backed files have no local bytes — fetch them (via the Worker proxy,
+// since Catbox's CDN doesn't send CORS headers for plain fetch()) and trigger
+// a real forced download rather than just opening/navigating to it.
+function downloadCatboxFile(entry){
+  const already = entry._blobFile ? Promise.resolve(entry._blobFile) : fetch(catboxProxyUrl(entry.url))
+    .then(res=>{
+      if(!res.ok) throw new Error('status ' + res.status);
+      return res.blob();
+    })
+    .then(blob=>new File([blob], entry.file.name, {type: entry.file.type || blob.type || ''}));
+
+  already
+    .then(fileLike=>{
+      const url = URL.createObjectURL(fileLike);
+      const a = document.createElement('a');
+      a.href = url; a.download = entry.file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    })
+    .catch(err=>{
+      console.error('Direct download failed, falling back to opening the file', err);
+      window.open(entry.url, '_blank');
+    });
+}
+
+/* ---------------- Modal ---------------- */
+function showModal(title, body){
+  document.getElementById('modalIconWrap').innerHTML = ICONS.edit;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+document.getElementById('modalClose').addEventListener('click', ()=> document.getElementById('modalOverlay').classList.remove('show'));
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') e.currentTarget.classList.remove('show'); });
+
+/* ---------------- Viewer rendering ---------------- */
+function headerHtml(name, sizeStr, info, extraTags){
+  const tags = (extraTags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+  return `
+  <div class="v-header">
+    <div class="v-header-left">
+      <span class="v-icon ${KIND_CLASS[info.kind]}">${fileIconMarkup(info)}</span>
+      <div>
+        <div class="v-title">${escapeHtml(name)}</div>
+        <div class="v-tags"><span class="tag">${sizeStr}</span><span class="tag">${KIND_LABEL[info.kind]}</span>${tags}</div>
+      </div>
+    </div>
+    <button class="btn btn-gradient" id="dlBtn">${ICONS.download} Download</button>
+  </div>`;
+}
+
+function lineWrap(htmlOrText){
+  return htmlOrText.split('\n').map((line,i)=>
+    `<div class="code-line"><span class="ln">${i+1}</span><span class="lc">${line.length?line:' '}</span></div>`
+  ).join('');
+}
+
+async function readPreview(file){
+  const truncated = file.size > MAX_PREVIEW;
+  const blob = truncated ? file.slice(0, MAX_PREVIEW) : file;
+  const text = await blob.text();
+  return {text, truncated};
+}
+
+// Fetches and caches the real bytes of a Catbox-stored file so it can be
+// previewed exactly like a local file (text/code/zip viewers all need real bytes).
+async function fetchCloudBytes(entry){
+  if(entry._blobFile) return entry._blobFile;
+  const res = await fetch(catboxProxyUrl(entry.url));
+  if(!res.ok) throw new Error('status ' + res.status);
+  const blob = await res.blob();
+  const realFile = new File([blob], entry.file.name, {type: entry.file.type || blob.type || '', lastModified: entry.file.lastModified || Date.now()});
+  entry._blobFile = realFile;
+  return realFile;
+}
+
+async function selectFile(id){
+  activeId = id;
+  renderFileList();
+  const entry = files.find(f=>f.id===id);
+  if(!entry) return;
+  const viewer = document.getElementById('viewer');
+  const info = entry.info;
+  const isCloud = entry.storage === 'catbox';
+  const cloudTag = isCloud ? ['Stored in cloud'] : [];
+  const meta = entry.file; // name/size/type — always available, even before bytes are fetched
+
+  // Image/video preview straight from the CDN URL for cloud files — no need to
+  // download the whole file first, the browser streams it directly.
+  if(info.kind === 'image' || info.kind === 'video'){
+    const url = isCloud ? entry.url : URL.createObjectURL(meta);
+    viewer.innerHTML = headerHtml(meta.name, formatBytes(meta.size), info, cloudTag.concat(info.label?[info.label]:[])) +
+      `<div class="panel"><div class="panel-bar"><span class="panel-bar-left">${ICONS[info.kind]}${info.kind==='image'?'Image preview':'Video preview'}</span></div>
+      <div class="media-frame">${info.kind==='image'
+        ? `<img src="${url}" alt="${escapeHtml(meta.name)}">`
+        : `<video src="${url}" controls></video>`}</div></div>`;
+    document.getElementById('dlBtn').addEventListener('click', ()=> isCloud ? downloadCatboxFile(entry) : downloadFile(meta));
+    return;
+  }
+
+  // Types with no in-browser viewer at all, whether local or cloud — fetching
+  // bytes wouldn't help, so skip straight to a download prompt.
+  if(info.kind === 'disk' || info.kind === 'exec' || info.kind === 'archive-unsupported' || info.kind === 'other'){
+    const messages = {
+      disk: "Disk images can't be mounted or previewed in a browser. Download it and use a tool like a disk-image mounter or burner on your device.",
+      exec: "Executable apps can't be run or previewed here for safety reasons. Download it to run it on your device.",
+      'archive-unsupported': "This archive format isn't supported by the built-in zip viewer. Download it and extract it with a desktop tool, like 7-Zip or The Unarchiver.",
+      other: "Chest doesn't have a viewer for this file type. The file itself is untouched — download it to open it with the right application."
+    };
+    viewer.innerHTML = headerHtml(meta.name, formatBytes(meta.size), info, cloudTag.concat(info.label?[info.label]:[])) +
+      `<div class="panel"><div class="unsupported">${ICONS.ban}<h3>Preview not supported</h3><p>${messages[info.kind]}</p></div></div>`;
+    document.getElementById('dlBtn').addEventListener('click', ()=> isCloud ? downloadCatboxFile(entry) : downloadFile(meta));
+    return;
+  }
+
+  // Everything else (text, code, zip) needs real bytes to preview. Local files
+  // already have them; cloud files need a fetch first.
+  let file = meta;
+  if(isCloud){
+    viewer.innerHTML = headerHtml(meta.name, formatBytes(meta.size), info, cloudTag) +
+      `<div class="panel"><div class="loading-row"><span class="ring"></span>&nbsp; downloading from cloud to preview…</div></div>`;
+    document.getElementById('dlBtn').addEventListener('click', ()=>downloadCatboxFile(entry));
+    try{
+      file = await fetchCloudBytes(entry);
+    }catch(err){
+      console.error('Cloud preview fetch failed', err);
+      if(activeId !== id) return;
+      viewer.innerHTML = headerHtml(meta.name, formatBytes(meta.size), info, cloudTag) +
+        `<div class="panel"><div class="cloud-card">${ICONS.cloudDownload}<h3>Couldn't load preview</h3><p>The file couldn't be fetched for preview right now, but it's safely stored in the cloud — try downloading it directly.</p>
+        <button class="btn btn-gradient" id="cloudDlBtn">${ICONS.download} Download file</button></div></div>`;
+      document.getElementById('dlBtn').addEventListener('click', ()=>downloadCatboxFile(entry));
+      document.getElementById('cloudDlBtn').addEventListener('click', ()=>downloadCatboxFile(entry));
+      return;
+    }
+    if(activeId !== id) return; // user navigated away while we were fetching
+  }
+
+  if(info.kind === 'text' || info.kind === 'code'){
+    viewer.innerHTML = headerHtml(file.name, formatBytes(file.size), info, cloudTag.concat(info.lang ? [info.lang] : [])) +
+      `<div class="panel"><div class="panel-bar"><span class="panel-bar-left">${ICONS[info.kind==='code'?'fileCode':'fileText']}${info.kind==='code'?'Code viewer':'Text viewer'}</span></div>
+      <div class="loading-row"><span class="ring"></span>&nbsp; reading file…</div></div>`;
+    document.getElementById('dlBtn').addEventListener('click', ()=> isCloud ? downloadCatboxFile(entry) : downloadFile(file));
+    const {text, truncated} = await readPreview(file);
+    if(activeId !== id) return;
+    let bodyHtml;
+    if(info.kind === 'code'){
+      let highlighted;
+      try{ highlighted = hljs.highlight(text, {language: info.lang, ignoreIllegals:true}).value; }
+      catch(e){ try{ highlighted = hljs.highlightAuto(text).value; } catch(e2){ highlighted = escapeHtml(text); } }
+      bodyHtml = lineWrap(highlighted);
+    } else {
+      bodyHtml = lineWrap(escapeHtml(text));
+    }
+    const panel = viewer.querySelector('.panel');
+    panel.innerHTML = `<div class="panel-bar"><span class="panel-bar-left">${ICONS[info.kind==='code'?'fileCode':'fileText']}${info.kind==='code'?'Code viewer · '+info.lang:'Text viewer'}</span></div>
+      ${truncated?`<div style="padding:14px 16px 0;"><div class="notice notice-warn">${ICONS.alert}<span>Showing the first ${formatBytes(MAX_PREVIEW)} of a ${formatBytes(file.size)} file. Download it to read the rest.</span></div></div>`:''}
+      <div class="code-scroll">${bodyHtml}</div>`;
+    return;
+  }
+
+  if(info.kind === 'zip'){
+    renderZip(Object.assign({}, entry, {file}));
+    return;
+  }
+}
+
+/* ---------------- Zip viewer ---------------- */
+async function renderZip(entry){
+  const {file, info} = entry;
+  const viewer = document.getElementById('viewer');
+  viewer.innerHTML = headerHtml(file.name, formatBytes(file.size), info) +
+    `<div class="panel"><div class="loading-row"><span class="ring"></span>&nbsp; indexing archive…</div></div>`;
+  document.getElementById('dlBtn').addEventListener('click', ()=>downloadFile(file));
+
+  let zip;
+  try{
+    zip = await JSZip.loadAsync(file);
+  }catch(err){
+    viewer.querySelector('.panel').innerHTML = `<div class="unsupported">${ICONS.alert}<h3>Couldn't read this archive</h3><p>The file may be corrupted, password-protected, or in a zip variant Chest's in-browser reader doesn't support. Try downloading and extracting it locally.</p></div>`;
+    return;
+  }
+
+  const root = {name:'', isDir:true, children:{}};
+  const paths = Object.keys(zip.files);
+  let fileCount = 0;
+  paths.forEach(path=>{
+    const zEntry = zip.files[path];
+    const parts = path.split('/').filter(Boolean);
+    let node = root;
+    parts.forEach((part,i)=>{
+      const isLast = i === parts.length-1;
+      if(isLast && !zEntry.dir){
+        let size = null;
+        try{ size = zEntry._data ? zEntry._data.uncompressedSize : null; }catch(e){}
+        node.children[part] = {name:part, isDir:false, path: zEntry.name, size};
+        fileCount++;
+      } else {
+        if(!node.children[part]) node.children[part] = {name:part, isDir:true, children:{}};
+        node = node.children[part];
+      }
+    });
+  });
+
+  const panel = document.querySelector('.viewer .panel');
+  panel.innerHTML = `
+    <div class="panel-bar">
+      <span class="panel-bar-left">${ICONS.archive} Archive contents · ${fileCount} ${fileCount===1?'file':'files'}</span>
+    </div>
+    ${file.size > 250*1024*1024 ? `<div style="padding:12px 16px 0;"><div class="notice notice-info">${ICONS.info}<span>This is a large archive — indexing and previewing entries may take a moment in the browser.</span></div></div>` : ''}
+    <div class="zip-body">
+      <div class="zip-tree" id="zipTree"></div>
+      <div class="zip-preview" id="zipPreview"><div class="zip-preview-empty">Select a file in the archive to preview it here.</div></div>
+    </div>`;
+
+  document.getElementById('zipTree').innerHTML = renderTreeNode(root, true);
+  bindTreeEvents(zip);
+}
+
+function renderTreeNode(node, isRoot){
+  const entries = Object.values(node.children).sort((a,b)=>{
+    if(a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return `<div class="tree-node">` + entries.map(child=>{
+    if(child.isDir){
+      const childId = 'd'+Math.random().toString(36).slice(2,9);
+      return `<div>
+        <div class="tree-row" data-type="dir" data-target="${childId}">
+          ${ICONS.chevron}${ICONS.folder}<span class="t-name">${escapeHtml(child.name)}</span>
+        </div>
+        <div class="tree-children" id="${childId}" style="display:none;">${renderTreeNode(child)}</div>
+      </div>`;
+    } else {
+      const childInfo = classify(child.name);
+      return `<div class="tree-row" data-type="file" data-path="${encodeURIComponent(child.path)}">
+        <span class="t-icon ${KIND_CLASS[childInfo.kind]}">${fileIconMarkup(childInfo)}</span><span class="t-name">${escapeHtml(child.name)}</span><span class="t-size">${child.size!=null?formatBytes(child.size):''}</span>
+      </div>`;
+    }
+  }).join('') + `</div>`;
+}
+
+function bindTreeEvents(zip){
+  const tree = document.getElementById('zipTree');
+  tree.querySelectorAll('.tree-row[data-type="dir"]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const target = document.getElementById(row.dataset.target);
+      const chev = row.querySelector('.chev');
+      const open = target.style.display !== 'none';
+      target.style.display = open ? 'none' : 'block';
+      chev.classList.toggle('open', !open);
+      const icon = row.querySelector('svg:nth-of-type(2)');
+      if(icon) icon.outerHTML = open ? ICONS.folder : ICONS.folderOpen;
+    });
+  });
+  tree.querySelectorAll('.tree-row[data-type="file"]').forEach(row=>{
+    row.addEventListener('click', async ()=>{
+      tree.querySelectorAll('.tree-row').forEach(r=>r.classList.remove('active'));
+      row.classList.add('active');
+      const path = decodeURIComponent(row.dataset.path);
+      await previewZipEntry(zip, path);
+    });
+  });
+}
+
+async function previewZipEntry(zip, path){
+  const previewEl = document.getElementById('zipPreview');
+  const name = path.split('/').pop();
+  const info = classify(name);
+  const zEntry = zip.file(path);
+  let size = null;
+  try{ size = zEntry._data ? zEntry._data.uncompressedSize : null; }catch(e){}
+
+  if(info.kind !== 'text' && info.kind !== 'code' && info.kind !== 'image' && info.kind !== 'video'){
+    previewEl.innerHTML = `
+      <div class="panel-bar"><span class="panel-bar-left">${ICONS.file}${escapeHtml(name)}</span></div>
+      <div class="unsupported" style="padding:34px 24px;">${ICONS.ban}<h3>Preview not supported</h3><p>This file inside the archive isn't a text, code, image, or video file Chest can display. Download the archive and extract it to open it with the right application.</p></div>`;
+    return;
+  }
+
+  if(info.kind === 'image' || info.kind === 'video'){
+    previewEl.innerHTML = `<div class="loading-row"><span class="ring"></span>&nbsp; reading ${escapeHtml(name)}…</div>`;
+    let blob;
+    try{ blob = await zEntry.async('blob'); }
+    catch(err){
+      previewEl.innerHTML = `<div class="unsupported" style="padding:34px 24px;">${ICONS.alert}<h3>Couldn't read this file</h3><p>It may be in a format the in-browser reader can't decode.</p></div>`;
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    previewEl.innerHTML = `
+      <div class="panel-bar"><span class="panel-bar-left">${ICONS[info.kind]}${escapeHtml(name)}</span></div>
+      <div class="media-frame">${info.kind==='image'
+        ? `<img src="${url}" alt="${escapeHtml(name)}">`
+        : `<video src="${url}" controls></video>`}</div>`;
+    return;
+  }
+
+  previewEl.innerHTML = `<div class="loading-row"><span class="ring"></span>&nbsp; reading ${escapeHtml(name)}…</div>`;
+  let raw;
+  try{
+    raw = await zEntry.async('string');
+  }catch(err){
+    previewEl.innerHTML = `<div class="unsupported" style="padding:34px 24px;">${ICONS.alert}<h3>Couldn't read this file</h3><p>It may be in a format the in-browser reader can't decode.</p></div>`;
+    return;
+  }
+  let truncated = false;
+  if(raw.length > MAX_PREVIEW){ raw = raw.slice(0, MAX_PREVIEW); truncated = true; }
+
+  let bodyHtml;
+  if(info.kind === 'code'){
+    let highlighted;
+    try{ highlighted = hljs.highlight(raw, {language: info.lang, ignoreIllegals:true}).value; }
+    catch(e){ try{ highlighted = hljs.highlightAuto(raw).value; } catch(e2){ highlighted = escapeHtml(raw); } }
+    bodyHtml = lineWrap(highlighted);
+  } else {
+    bodyHtml = lineWrap(escapeHtml(raw));
+  }
+
+  previewEl.innerHTML = `
+    <div class="panel-bar">
+      <span class="panel-bar-left">${ICONS[info.kind==='code'?'fileCode':'fileText']}${escapeHtml(name)}${info.lang?(' · '+info.lang):''}</span>
+      <button class="btn btn-ghost" id="zipEditBtn">${ICONS.edit} Edit</button>
+    </div>
+    ${truncated?`<div style="padding:14px 16px 0;"><div class="notice notice-warn">${ICONS.alert}<span>Showing the first ${formatBytes(MAX_PREVIEW)} of this file. Download and extract the archive to read the rest.</span></div></div>`:''}
+    <div class="code-scroll" style="max-height:48vh;">${bodyHtml}</div>`;
+
+  document.getElementById('zipEditBtn').addEventListener('click', ()=>{
+    showModal('Download and extract to edit', `"${name}" lives inside a .zip archive. Chest's archive viewer is read-only — download the archive and extract it on your device to edit this file.`);
+  });
+}
+
+/* ---------------- Upload wiring ---------------- */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+document.getElementById('browseBtn').addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', e=>{ if(e.target.files.length) addFiles(e.target.files); fileInput.value=''; });
+
+function stopEvt(e){ e.preventDefault(); e.stopPropagation(); }
+
+// Prevent the browser's default "open the file" behavior anywhere on the page,
+// so a drop that misses the dropzone doesn't navigate away.
+['dragenter','dragover','dragleave','drop'].forEach(evt=>{
+  document.addEventListener(evt, stopEvt, false);
+  window.addEventListener(evt, stopEvt, false);
+});
+
+['dragenter','dragover'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ stopEvt(e); dropzone.classList.add('dragover'); }, false);
+});
+dropzone.addEventListener('dragleave', e=>{ stopEvt(e); dropzone.classList.remove('dragover'); }, false);
+dropzone.addEventListener('drop', e=>{
+  stopEvt(e);
+  dropzone.classList.remove('dragover');
+  const dt = e.dataTransfer;
+  if(dt && dt.files && dt.files.length) addFiles(dt.files);
+}, false);
+
+renderFileList();
+
+/* ---------------- Firebase online / offline bar ---------------- */
+// Fill these in with your Firebase project's web config (Project settings → General → Your apps).
+// databaseURL is required for the real-time connection check; leave it blank to fall back
+// to the browser's own network status.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBuP5VWwis1sc26VylPMy5snDSaZVebXKI",
+  authDomain: "chest-of-files.firebaseapp.com",
+  databaseURL: "https://chest-of-files-default-rtdb.firebaseio.com",
+  projectId: "chest-of-files",
+};
+
+const statusPill = document.getElementById('statusPill');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+function setStatus(state, label, title){
+  statusDot.classList.remove('online','offline','unconfigured');
+  statusDot.classList.add(state);
+  statusText.textContent = label;
+  statusPill.title = title;
+}
+
+// Without a real Firebase connection there is nothing to be "online" to —
+// so Chest always reports Offline until it's actually connected.
+function markOffline(reason){
+  setStatus('offline', 'Offline', reason);
+}
+
+const firebaseConfigured = !!(FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.apiKey);
+firebaseConfiguredFlag = firebaseConfigured;
+
+if(firebaseConfigured && window.firebase){
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    const connectedRef = db.ref('.info/connected');
+    let gotFirstValue = false;
+    connectedRef.on('value', snap=>{
+      gotFirstValue = true;
+      const isConnected = !!snap.val();
+      setStatus(
+        isConnected ? 'online' : 'offline',
+        isConnected ? 'Online' : 'Offline',
+        isConnected ? 'Connected to Firebase Realtime Database.' : 'Lost connection to Firebase Realtime Database.'
+      );
+    }, ()=> markOffline('Could not connect to Firebase Realtime Database — check your config and rules.'));
+    // If Firebase never calls back (bad config), fall back to Offline instead of hanging on "Checking…".
+    setTimeout(()=>{ if(!gotFirstValue) markOffline('Timed out waiting for Firebase — check your databaseURL and rules.'); }, 6000);
+    // Attach regardless of connection state — writes/listeners queue and sync once connected.
+    initFileSync();
+  }catch(err){
+    markOffline('Firebase failed to initialize — check your config values.');
+  }
+} else {
+  markOffline('No Firebase project connected. Add your Firebase config in the script (search for FIREBASE_CONFIG) to go online.');
+}
 </script>
 </body>
 </html>
