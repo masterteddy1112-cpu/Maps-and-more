@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — Link Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root[data-theme="light"]{
+    --bg-a:#eef2f8; --bg-b:#e3e9f2;
+    --card:#f6f9fc;
+    --card-hi:#ffffff; --card-lo:#c7d1e0;
+    --text:#1b2430; --muted:#8791a3; --faint:#aeb6c4;
+    --accent1:#5b8dff; --accent2:#2451e8;
+    --border: rgba(27,36,48,0.07);
+    --danger:#e5484d; --danger-bg:#fdecec;
+    --success:#1fa971;
+    --input-bg:#ffffff;
+    --overlay: rgba(20,26,38,0.45);
+    --code-bg: rgba(27,36,48,0.06);
+  }
+  :root[data-theme="dark"]{
+    --bg-a:#14162a; --bg-b:#0b0c17;
+    --card:#1a1c30;
+    --card-hi:#232640; --card-lo:#0a0b16;
+    --text:#f1f2f9; --muted:#9096b0; --faint:#5c6180;
+    --accent1:#8b6cf6; --accent2:#3b82f6;
+    --border: rgba(255,255,255,0.07);
+    --danger:#ff7676; --danger-bg:rgba(255,118,118,0.12);
+    --success:#3fdc8e;
+    --input-bg:#12131f;
+    --overlay: rgba(3,4,10,0.6);
+    --code-bg: rgba(255,255,255,0.08);
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 85% -10%, var(--bg-a) 0%, var(--bg-b) 55%);
+    min-height:100vh;
+    transition:background .35s ease, color .35s ease;
+  }
+  h1,h2,h3{font-family:'Manrope',sans-serif; margin:0;}
+  ::selection{background:var(--accent1); color:#fff;}
+  button{font-family:inherit;}
+  input,textarea{font-family:'Inter',sans-serif;}
+
+  .app{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- topbar ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.02em;}
+  .brand .brand-icon{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(59,90,220,0.35);
+  }
+  .brand .brand-icon svg{width:18px;height:18px;stroke:#fff;}
+  .top-actions{display:flex;gap:10px;}
+
+  .sync-pill{
+    display:flex;align-items:center;gap:7px;height:40px;padding:0 12px;
+    border-radius:12px;background:var(--card);border:1px solid var(--border);
+    font-size:11.5px;font-weight:700;color:var(--muted);white-space:nowrap;
+  }
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto;}
+  .sync-dot.online{background:var(--success);box-shadow:0 0 0 3px rgba(63,220,142,0.22);}
+  .sync-dot.offline{background:var(--danger);}
+  .sync-dot.local{background:var(--faint);}
+  .icon-btn{
+    width:40px;height:40px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:5px 5px 12px var(--card-lo), -5px -5px 12px var(--card-hi);
+    color:var(--text);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .icon-btn:hover{transform:translateY(-1px);}
+  .icon-btn:active{transform:translateY(0);box-shadow:inset 3px 3px 8px var(--card-lo), inset -3px -3px 8px var(--card-hi);}
+  .icon-btn svg{width:18px;height:18px;}
+  :focus-visible{outline:2px solid var(--accent2); outline-offset:2px;}
+
+  /* ---------- neumorphic card base ---------- */
+  .neu{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    box-shadow:8px 8px 22px var(--card-lo), -8px -8px 22px var(--card-hi);
+  }
+
+  /* ---------- gate card ---------- */
+  .gate-card{
+    padding:30px 28px;margin-bottom:22px;
+    display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  }
+  .gate-icon{
+    width:46px;height:46px;border-radius:14px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;margin-bottom:4px;
+    box-shadow:0 8px 18px rgba(59,90,220,0.3);
+  }
+  .gate-icon svg{width:22px;height:22px;stroke:#fff;}
+  .gate-card h2{font-size:19px;}
+  .gate-card p.muted{margin:0;font-size:13.5px;line-height:1.5;max-width:46ch;}
+  #gateForm{display:flex;gap:10px;width:100%;margin-top:6px;flex-wrap:wrap;}
+  #gateInput{
+    flex:1;min-width:180px;
+    background:var(--input-bg); border:1px solid var(--border); border-radius:12px;
+    padding:12px 14px;font-size:14px;color:var(--text);
+  }
+  .error-text{color:var(--danger);font-size:13px;font-weight:600;margin:2px 0 0;}
+  .shake{animation:shake .4s ease;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+
+  /* ---------- dev bar ---------- */
+  .dev-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 18px;margin-bottom:22px;border-radius:16px;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--accent1) 18%, transparent), color-mix(in srgb, var(--accent2) 10%, transparent));
+    border:1px solid var(--border);
+  }
+  .dev-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;color:var(--accent2);}
+  .dev-badge svg{width:16px;height:16px;stroke:var(--accent2);}
+  :root[data-theme="dark"] .dev-badge, :root[data-theme="dark"] .dev-badge svg{color:var(--accent1);stroke:var(--accent1);}
+
+  /* ---------- buttons ---------- */
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:8px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;border:none;border-radius:12px;padding:11px 18px;
+    font-weight:700;font-size:13.5px;cursor:pointer;
+    box-shadow:0 8px 18px rgba(59,90,220,0.28);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-primary:hover{transform:translateY(-1px);}
+  .btn-primary svg{width:16px;height:16px;stroke:#fff;}
+  .btn-ghost{
+    background:transparent;border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;
+  }
+  .btn-danger{
+    background:var(--danger-bg);color:var(--danger);border:1px solid transparent;
+    border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;
+  }
+
+  /* ---------- links section ---------- */
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-head h2{font-size:17px;}
+  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .empty-state{
+    text-align:center;padding:50px 20px;border:1.5px dashed var(--border);border-radius:18px;font-size:14px;
+  }
+
+  .link-card{overflow:hidden;transition:box-shadow .2s ease;}
+  .link-card-main{
+    display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;
+  }
+  .link-icon{
+    width:42px;height:42px;flex:0 0 auto;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .link-icon svg{width:20px;height:20px;stroke:#fff;}
+  .link-icon.empty{
+    background:var(--input-bg);border:1.5px dashed var(--border);color:var(--faint);
+  }
+  .link-icon.empty svg{stroke:var(--faint);}
+  .link-icon.has-image{background:none;padding:0;overflow:hidden;border:1px solid var(--border);}
+  .link-icon.has-image img{width:100%;height:100%;object-fit:cover;border-radius:inherit;}
+  .link-info{flex:1;min-width:0;}
+  .link-title{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .link-url{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .link-card-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+  .chevron-btn{
+    width:32px;height:32px;border-radius:9px;border:none;background:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
+    transition:transform .25s ease, background .15s ease, color .15s ease;
+  }
+  .chevron-btn:hover{background:var(--code-bg);color:var(--text);}
+  .chevron-btn svg{width:16px;height:16px;}
+  .chevron-btn.open{transform:rotate(-90deg);color:var(--accent2);}
+  .mini-btn{
+    width:32px;height:32px;border-radius:9px;border:none;background:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
+  }
+  .mini-btn:hover{background:var(--code-bg);color:var(--text);}
+  .mini-btn svg{width:15px;height:15px;}
+  .mini-btn.danger:hover{color:var(--danger);}
+
+  .link-desc-panel{
+    max-height:0;overflow:hidden;transition:max-height .25s ease, padding .25s ease;
+    border-top:1px solid transparent;
+  }
+  .link-desc-panel.open{
+    max-height:400px;padding:2px 18px 18px 74px;border-top:1px solid var(--border);
+  }
+  .md-rendered{font-size:13.5px;line-height:1.6;color:var(--muted);}
+  .md-rendered h1,.md-rendered h2,.md-rendered h3{color:var(--text);margin:8px 0 4px;}
+  .md-rendered h1{font-size:18px;} .md-rendered h2{font-size:16px;} .md-rendered h3{font-size:14.5px;}
+  .md-rendered code{background:var(--code-bg);padding:2px 6px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--text);}
+  .md-rendered p{margin:4px 0;}
+  .md-rendered em{color:var(--text);}
+  .md-rendered del{opacity:.6;}
+  .md-rendered a{color:var(--accent2);font-weight:600;text-decoration:none;}
+  .md-rendered a:hover{text-decoration:underline;}
+  .md-rendered ul,.md-rendered ol{margin:4px 0;padding-left:20px;}
+  .md-rendered li{margin:2px 0;}
+  .md-rendered ul.md-checklist{list-style:none;padding-left:0;}
+  .md-rendered ul.md-checklist li{display:flex;align-items:flex-start;gap:7px;}
+  .md-rendered ul.md-checklist input{margin-top:3px;}
+  .md-rendered img{max-width:100%;border-radius:10px;margin:6px 0;display:block;}
+  .md-video{position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:10px;overflow:hidden;background:#000;}
+  .md-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .md-video-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent2);font-weight:700;}
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:var(--overlay);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 16px; overflow-y:auto; z-index:50;
+  }
+  .modal{
+    width:100%;max-width:560px;padding:24px;display:flex;flex-direction:column;gap:14px;
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;}
+  .modal-head h3{font-size:17px;}
+  label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:700;color:var(--muted);}
+  input[type=text],input[type=url],input[type=password]{
+    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;
+    padding:11px 13px;font-size:13.5px;color:var(--text);font-weight:500;
+  }
+  .icon-picker-label{font-size:12.5px;font-weight:700;color:var(--muted);}
+  .icon-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:-6px;}
+  .icon-opt{
+    width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:var(--input-bg);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
+  }
+  .icon-opt svg{width:17px;height:17px;}
+  .icon-opt.selected{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    border-color:transparent;color:#fff;
+  }
+
+  .editor-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:6px;}
+  .tb-btn{
+    min-width:32px;height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--border);
+    background:var(--input-bg);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .tb-btn:hover{background:var(--code-bg);}
+  .tb-btn.italic{font-style:italic;}
+  .tb-btn.bolditalic{font-style:italic;}
+  .editor-mode-toggle{display:flex;background:var(--input-bg);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+  .mode-btn{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;}
+  .mode-btn.active{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff;}
+  #descInput{
+    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;
+    padding:12px 13px;font-size:13.5px;color:var(--text);resize:vertical;min-height:120px;line-height:1.5;
+  }
+  .md-preview{
+    background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px;min-height:120px;
+  }
+  .modal-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:4px;}
+  .unsaved-badge{
+    margin-right:auto;font-size:12px;font-weight:700;color:#d97706;
+    display:flex;align-items:center;gap:6px;
+  }
+  .unsaved-badge::before{
+    content:'';width:7px;height:7px;border-radius:50%;background:#d97706;flex:0 0 auto;
+  }
+  .icon-opt.upload-opt{border-style:dashed;color:var(--muted);}
+  .icon-opt.none-opt{color:var(--faint);}
+  .icon-opt img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+
+  .icon-preview-row{display:flex;align-items:center;gap:14px;}
+  .icon-preview-box{
+    width:56px;height:56px;border-radius:14px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .icon-preview-box svg{width:24px;height:24px;stroke:#fff;}
+  .icon-preview-box img{width:100%;height:100%;object-fit:cover;}
+  .icon-preview-box.empty{background:var(--input-bg);border:1.5px dashed var(--border);}
+  .icon-preview-box.empty svg{stroke:var(--faint);}
+  .icon-preview-actions{display:flex;flex-direction:column;gap:6px;}
+  .ghost-danger{color:var(--danger);border-color:var(--danger-bg);}
+  .ghost-danger:hover{background:var(--danger-bg);}
+
+  .tb-sep{width:1px;align-self:stretch;background:var(--border);margin:2px 2px;}
+  .tb-icon{display:flex;align-items:center;justify-content:center;padding:0;width:30px;}
+  .tb-icon svg{width:15px;height:15px;}
+
+  @media (max-width:520px){
+    .link-desc-panel.open{padding-left:18px;}
+    #gateForm{flex-direction:column;}
+    #gateForm .btn-primary{width:100%;justify-content:center;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg></span>
+      <span>Vault</span>
+    </div>
+    <div class="top-actions">
+      <span class="sync-pill" id="syncPill" title="Cloud sync status">
+        <span class="sync-dot local" id="syncDot"></span>
+        <span id="syncLabel">Local only</span>
+      </span>
+      <button class="icon-btn" id="themeToggle" title="Toggle theme"></button>
+    </div>
+  </header>
+
+  <section class="gate-card neu" id="gateSection">
+    <div class="gate-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+    <h2>Enter passcode</h2>
+    <p class="muted">Know the passcode? Unlock the developer menu to add and edit links. Otherwise, just browse what's below.</p>
+    <form id="gateForm">
+      <input id="gateInput" type="password" placeholder="Passcode" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+      <button type="submit" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Unlock
+      </button>
+    </form>
+    <p class="error-text" id="gateError" hidden>Wrong password</p>
+  </section>
+
+  <section class="dev-bar" id="devBar" hidden>
+    <span class="dev-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.4-2"/></svg>
+      Developer mode active
+    </span>
+    <button class="btn-ghost" id="relockBtn">Lock</button>
+  </section>
+
+  <section class="links-section">
+    <div class="section-head">
+      <h2>Links</h2>
+      <button class="btn-primary" id="addLinkBtn" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add link
+      </button>
+    </div>
+    <div class="links-grid" id="linksGrid"></div>
+    <p class="muted empty-state" id="emptyState" hidden>No links yet.</p>
+  </section>
+
+</div>
+
+<div class="modal-overlay" id="linkModal" hidden>
+  <div class="modal neu">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add link</h3>
+      <button class="icon-btn" id="modalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <label>Title
+      <input type="text" id="linkTitleInput" placeholder="e.g. Project docs" />
+    </label>
+    <label>URL
+      <input type="url" id="linkUrlInput" placeholder="https://example.com" />
+    </label>
+    <div>
+      <div class="icon-picker-label" style="margin-bottom:8px;">Icon</div>
+      <div class="icon-preview-row">
+        <div class="icon-preview-box" id="iconPreviewBox"></div>
+        <div class="icon-preview-actions">
+          <button type="button" class="btn-ghost" id="uploadIconBtn">Upload icon</button>
+          <button type="button" class="btn-ghost ghost-danger" id="removeIconBtn">Remove icon</button>
+        </div>
+      </div>
+      <div class="icon-picker-label" style="margin:14px 0 8px;">Or pick a preset</div>
+      <div class="icon-picker" id="iconPicker"></div>
+      <input type="file" id="iconFileInput" accept="image/*" hidden />
+    </div>
+
+    <div class="editor-head">
+      <div class="toolbar" id="mdToolbar">
+        <button type="button" class="tb-btn" data-type="h1">H1</button>
+        <button type="button" class="tb-btn" data-type="h2">H2</button>
+        <button type="button" class="tb-btn" data-type="h3">H3</button>
+        <button type="button" class="tb-btn" data-type="bold" style="font-weight:900;">B</button>
+        <button type="button" class="tb-btn italic" data-type="italic">I</button>
+        <button type="button" class="tb-btn bolditalic" data-type="boldItalic" style="font-weight:900;">B/I</button>
+        <button type="button" class="tb-btn" data-type="code">&lt;/&gt;</button>
+        <span class="tb-sep"></span>
+        <button type="button" class="tb-btn tb-icon" data-type="strike" title="Strikethrough"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M15.6 7c-.8-1-2.2-1.6-3.7-1.6-2.3 0-4.1 1.1-4.1 2.7 0 1.4 1.2 2.1 3.2 2.5"/><path d="M8.3 16.9c.8 1 2.2 1.6 3.7 1.6 2.4 0 4.3-1.1 4.3-2.8"/></svg></button>
+        <button type="button" class="tb-btn tb-icon" data-type="bulletList" title="Bullet list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="18" r="1.3" fill="currentColor" stroke="none"/><path d="M10 6h10M10 12h10M10 18h10"/></svg></button>
+        <button type="button" class="tb-btn tb-icon" data-type="numberList" title="Numbered list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5.5h1.2v3M4 8.5h1.5M4.2 12h1.3a.8.8 0 0 1 0 1.5H4.2M4.2 13.5h1.3a.8.8 0 0 1 0 1.5H4.2M4 18h1.5v2.5H4"/></svg></button>
+        <button type="button" class="tb-btn tb-icon" data-type="checklist" title="Checklist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="6" height="6" rx="1.2"/><path d="M5 7.3l1 1 2-2.2"/><path d="M13 6h8"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.2"/><path d="M13 17h8"/></svg></button>
+        <span class="tb-sep"></span>
+        <button type="button" class="tb-btn tb-icon" data-type="linkInsert" title="Insert link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg></button>
+        <button type="button" class="tb-btn tb-icon" data-type="imageInsert" title="Insert image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></button>
+        <button type="button" class="tb-btn tb-icon" data-type="videoInsert" title="Insert video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+      </div>
+      <div class="editor-mode-toggle">
+        <button type="button" class="mode-btn active" id="editModeBtn">Edit</button>
+        <button type="button" class="mode-btn" id="previewModeBtn">Preview</button>
+      </div>
+    </div>
+    <textarea id="descInput" rows="6" placeholder="Description — select text and use the toolbar to format it."></textarea>
+    <div class="md-preview md-rendered" id="descPreview" hidden></div>
+
+    <div class="modal-actions">
+      <span class="unsaved-badge" id="unsavedBadge" hidden>You have unsaved edits</span>
+      <button class="btn-danger" id="deleteLinkBtn" hidden>Delete</button>
+      <button class="btn-primary" id="saveLinkBtn">Save link</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+const DEV_PASSCODE = "Darsh1112";
+
+const ICONS = {
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
+  code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 2 12l6 6"/><path d="M16 6l6 6-6 6"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.26 6.9.6-5.2 4.6 1.6 6.74L12 16.9l-6.2 3.3 1.6-6.74-5.2-4.6 6.9-.6z"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5A8.5 8.5 0 1 1 21 11.5z"/></svg>',
+  terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>'
+};
+const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
+const PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+const EMPTY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-4-5 4-3-2-5 4"/></svg>';
+const UPLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>';
+
+/* Replace with your own Firebase project's config to enable cross-device sync.
+   Get this from the Firebase console: Project settings -> General -> Your apps -> SDK setup.
+   Also make sure Realtime Database is enabled for the project (Build -> Realtime Database). */
+const firebaseConfig = {
+  apiKey: "AIzaSyByortC03U9iUZk1RA3Hk1p83_-oAmAtYQ",
+  authDomain: "maps-and-more-by-masterteddy.firebaseapp.com",
+  databaseURL: "https://maps-and-more-by-masterteddy-default-rtdb.firebaseio.com",
+  projectId: "maps-and-more-by-masterteddy",
+  storageBucket: "maps-and-more-by-masterteddy.firebasestorage.app",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "1:451484523963:web:cf39feaf4d314a6540789e"
+};
+const firebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+  firebaseConfig.databaseURL.indexOf("YOUR_PROJECT") === -1;
+let linksRef = null;
+
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function loadFirebaseSDK(){
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
+}
+
+const state = { theme:'light', devMode:false, links:[], editingId:null, selectedIcon:'none', customIcon:null, mode:'edit' };
+
+const $ = (id) => document.getElementById(id);
+
+function setSyncStatus(status){
+  const dot = $('syncDot'), label = $('syncLabel');
+  if(!dot) return;
+  dot.className = 'sync-dot ' + status;
+  label.textContent = status === 'online' ? 'Synced' : status === 'offline' ? 'Offline' : 'Local only';
+}
+
+async function storageGet(key){
+  try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
+  catch(e){ return null; }
+}
+async function storageSet(key, value){
+  try{ await window.storage.set(key, value, false); }catch(e){}
+}
+
+async function loadState(){
+  const t = await storageGet('theme');
+  if(t){ try{ state.theme = JSON.parse(t); }catch(e){} }
+  applyTheme();
+  await initSync();
+}
+
+async function initSync(){
+  if(firebaseConfigured){
+    try{
+      if(typeof firebase === 'undefined') await loadFirebaseSDK();
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      linksRef = db.ref('vaultLinks');
+      db.ref('.info/connected').on('value', (snap) => {
+        setSyncStatus(snap.val() ? 'online' : 'offline');
+      });
+      linksRef.on('value', (snapshot) => {
+        const val = snapshot.val();
+        state.links = val ? Object.keys(val).map((id) => Object.assign({ id }, val[id])) : [];
+        renderLinks();
+      });
+      return;
+    }catch(e){
+      console.warn('Firebase init failed, falling back to local storage.', e);
+      linksRef = null;
+    }
+  }
+  setSyncStatus('local');
+  const l = await storageGet('links');
+  if(l){ try{ state.links = JSON.parse(l); }catch(e){ state.links = []; } }
+  else { state.links = []; }
+  renderLinks();
+}
+
+/* Persists a link either to Firebase (if configured) or to local artifact storage. */
+async function persistLink(id, data){
+  if(linksRef){
+    await linksRef.child(id).set(data);
+  } else {
+    const idx = state.links.findIndex((l) => l.id === id);
+    if(idx > -1) state.links[idx] = Object.assign({ id }, data);
+    else state.links.push(Object.assign({ id }, data));
+    await storageSet('links', JSON.stringify(state.links));
+    renderLinks();
+  }
+}
+async function removeLink(id){
+  if(linksRef){
+    await linksRef.child(id).remove();
+  } else {
+    state.links = state.links.filter((l) => l.id !== id);
+    await storageSet('links', JSON.stringify(state.links));
+    renderLinks();
+  }
+}
+
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', state.theme);
+  $('themeToggle').innerHTML = state.theme === 'light' ? MOON : SUN;
+}
+
+$('themeToggle').addEventListener('click', () => {
+  state.theme = state.theme === 'light' ? 'dark' : 'light';
+  applyTheme();
+  storageSet('theme', JSON.stringify(state.theme));
+});
+
+/* ---------- password gate ---------- */
+$('gateForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const val = $('gateInput').value.trim();
+  if(val === DEV_PASSCODE){
+    state.devMode = true;
+    $('gateSection').hidden = true;
+    $('devBar').hidden = false;
+    $('addLinkBtn').hidden = false;
+    $('gateError').hidden = true;
+    $('gateInput').value = '';
+    renderLinks();
+  } else {
+    $('gateError').hidden = false;
+    $('gateInput').value = '';
+    $('gateSection').classList.remove('shake');
+    void $('gateSection').offsetWidth;
+    $('gateSection').classList.add('shake');
+    $('gateInput').focus();
+  }
+});
+
+$('relockBtn').addEventListener('click', () => {
+  state.devMode = false;
+  $('gateSection').hidden = false;
+  $('devBar').hidden = true;
+  $('addLinkBtn').hidden = true;
+  renderLinks();
+});
+
+/* ---------- markdown ---------- */
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function extractYouTubeId(url){
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
+function videoEmbedHtml(rawUrl){
+  const ytId = extractYouTubeId(rawUrl);
+  const safeUrl = escapeHtml(rawUrl);
+  if(ytId){
+    return '<div class="md-video"><iframe src="https://www.youtube.com/embed/' + ytId + '" title="Video" allowfullscreen loading="lazy"></iframe></div>';
+  }
+  return '<a class="md-video-link" href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">Watch video</a>';
+}
+function inlineFormat(text){
+  return text
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/~~(.+?)~~/g, '<del>$1</del>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+function renderMarkdown(src){
+  const rawLines = (src || '').split('\n');
+  let html = '';
+  let listType = null;
+  function closeList(){
+    if(listType){ html += '</' + listType + '>'; listType = null; }
+  }
+  rawLines.forEach((rawLine) => {
+    const videoMatch = rawLine.match(/^!video\[[^\]]*\]\((.+?)\)\s*$/);
+    if(videoMatch){
+      closeList();
+      html += videoEmbedHtml(videoMatch[1].trim());
+      return;
+    }
+    const line = escapeHtml(rawLine);
+
+    const hMatch = line.match(/^(#{1,3})\s+(.*)$/);
+    if(hMatch){
+      closeList();
+      const tag = 'h' + hMatch[1].length;
+      html += '<' + tag + '>' + inlineFormat(hMatch[2]) + '</' + tag + '>';
+      return;
+    }
+    const checkMatch = line.match(/^[-*]\s\[([ xX])\]\s+(.*)$/);
+    if(checkMatch){
+      if(listType !== 'ul-check'){ closeList(); html += '<ul class="md-checklist">'; listType = 'ul-check'; }
+      const checked = /x/i.test(checkMatch[1]);
+      html += '<li><input type="checkbox" disabled' + (checked ? ' checked' : '') + '> ' + inlineFormat(checkMatch[2]) + '</li>';
+      return;
+    }
+    const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+    if(bulletMatch){
+      if(listType !== 'ul'){ closeList(); html += '<ul>'; listType = 'ul'; }
+      html += '<li>' + inlineFormat(bulletMatch[1]) + '</li>';
+      return;
+    }
+    const numMatch = line.match(/^\d+\.\s+(.*)$/);
+    if(numMatch){
+      if(listType !== 'ol'){ closeList(); html += '<ol>'; listType = 'ol'; }
+      html += '<li>' + inlineFormat(numMatch[1]) + '</li>';
+      return;
+    }
+    closeList();
+    if(line.trim() === '') return;
+    html += '<p>' + inlineFormat(line) + '</p>';
+  });
+  closeList();
+  return html || '<p style="color:var(--faint)">Nothing to preview yet.</p>';
+}
+function applyFormat(type){
+  const ta = $('descInput');
+  const val = ta.value;
+  let start = ta.selectionStart, end = ta.selectionEnd;
+  const selected = val.slice(start, end);
+
+  if(type === 'h1' || type === 'h2' || type === 'h3'){
+    const level = { h1:1, h2:2, h3:3 }[type];
+    let lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = val.indexOf('\n', start);
+    if(lineEnd === -1) lineEnd = val.length;
+    const line = val.slice(lineStart, lineEnd);
+    const stripped = line.replace(/^#{1,3}\s?/, '');
+    const newLine = '#'.repeat(level) + ' ' + stripped;
+    ta.value = val.slice(0, lineStart) + newLine + val.slice(lineEnd);
+    const diff = newLine.length - line.length;
+    ta.setSelectionRange(start + diff, end + diff);
+    ta.focus();
+    return;
+  }
+  if(type === 'bold' || type === 'italic' || type === 'boldItalic' || type === 'code' || type === 'strike'){
+    const wrap = { bold:'**', italic:'*', boldItalic:'***', code:'`', strike:'~~' }[type];
+    ta.value = val.slice(0, start) + wrap + selected + wrap + val.slice(end);
+    ta.setSelectionRange(start + wrap.length, end + wrap.length);
+    ta.focus();
+    return;
+  }
+  if(type === 'bulletList' || type === 'numberList' || type === 'checklist'){
+    let lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    let blockEnd = val.indexOf('\n', Math.max(end - 1, lineStart));
+    if(blockEnd === -1) blockEnd = val.length;
+    const block = val.slice(lineStart, blockEnd);
+    const lines = block.split('\n');
+    const stripPrefix = (l) => l.replace(/^(\d+\.\s+|[-*]\s(\[[ xX]\]\s)?)/, '');
+    let newLines;
+    if(type === 'numberList'){
+      newLines = lines.map((l, i) => (i + 1) + '. ' + stripPrefix(l));
+    } else if(type === 'checklist'){
+      newLines = lines.map((l) => '- [ ] ' + stripPrefix(l));
+    } else {
+      newLines = lines.map((l) => '- ' + stripPrefix(l));
+    }
+    const newBlock = newLines.join('\n');
+    ta.value = val.slice(0, lineStart) + newBlock + val.slice(blockEnd);
+    const diff = newBlock.length - block.length;
+    ta.setSelectionRange(start, end + diff);
+    ta.focus();
+    return;
+  }
+  if(type === 'linkInsert' || type === 'imageInsert'){
+    const isImage = type === 'imageInsert';
+    const url = prompt(isImage ? 'Image URL:' : 'Link URL:', 'https://');
+    if(!url) { ta.focus(); return; }
+    let label = selected;
+    if(!label){
+      label = prompt(isImage ? 'Alt text (optional):' : 'Link text:', isImage ? '' : url) || (isImage ? '' : url);
+    }
+    const md = (isImage ? '!' : '') + '[' + label + '](' + url + ')';
+    ta.value = val.slice(0, start) + md + val.slice(end);
+    ta.setSelectionRange(start, start + md.length);
+    ta.focus();
+    return;
+  }
+  if(type === 'videoInsert'){
+    const url = prompt('Video URL (YouTube link works best):', 'https://');
+    if(!url) { ta.focus(); return; }
+    const needsNewlineBefore = start > 0 && val[start - 1] !== '\n';
+    const md = (needsNewlineBefore ? '\n' : '') + '!video[](' + url + ')\n';
+    ta.value = val.slice(0, start) + md + val.slice(end);
+    const pos = start + md.length;
+    ta.setSelectionRange(pos, pos);
+    ta.focus();
+    return;
+  }
+}
+document.querySelectorAll('#mdToolbar .tb-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(state.mode === 'preview') setEditorMode('edit');
+    applyFormat(btn.dataset.type);
+    markDirty();
+  });
+});
+function setEditorMode(mode){
+  state.mode = mode;
+  const isEdit = mode === 'edit';
+  $('editModeBtn').classList.toggle('active', isEdit);
+  $('previewModeBtn').classList.toggle('active', !isEdit);
+  $('descInput').hidden = !isEdit;
+  $('descPreview').hidden = isEdit;
+  if(!isEdit) $('descPreview').innerHTML = renderMarkdown($('descInput').value);
+}
+$('editModeBtn').addEventListener('click', () => setEditorMode('edit'));
+$('previewModeBtn').addEventListener('click', () => setEditorMode('preview'));
+
+/* ---------- icon picker ---------- */
+function renderIconPicker(){
+  const wrap = $('iconPicker');
+  wrap.innerHTML = '';
+
+  const noneBtn = document.createElement('button');
+  noneBtn.type = 'button';
+  noneBtn.className = 'icon-opt none-opt' + (state.selectedIcon === 'none' ? ' selected' : '');
+  noneBtn.innerHTML = EMPTY_ICON;
+  noneBtn.title = 'No icon';
+  noneBtn.addEventListener('click', () => {
+    state.selectedIcon = 'none';
+    state.customIcon = null;
+    markDirty();
+    renderIconPicker();
+  });
+  wrap.appendChild(noneBtn);
+
+  Object.keys(ICONS).forEach(key => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'icon-opt' + (state.selectedIcon === key ? ' selected' : '');
+    b.innerHTML = ICONS[key];
+    b.title = key;
+    b.addEventListener('click', () => {
+      state.selectedIcon = key;
+      state.customIcon = null;
+      markDirty();
+      renderIconPicker();
+    });
+    wrap.appendChild(b);
+  });
+
+  const uploadBtn = document.createElement('button');
+  uploadBtn.type = 'button';
+  if(state.selectedIcon === 'custom' && state.customIcon){
+    uploadBtn.className = 'icon-opt selected';
+    uploadBtn.innerHTML = '<img src="' + state.customIcon + '" alt="" />';
+    uploadBtn.title = 'Uploaded icon (click to replace)';
+  } else {
+    uploadBtn.className = 'icon-opt upload-opt';
+    uploadBtn.innerHTML = UPLOAD_ICON;
+    uploadBtn.title = 'Upload icon';
+  }
+  uploadBtn.addEventListener('click', () => $('iconFileInput').click());
+  wrap.appendChild(uploadBtn);
+}
+$('iconFileInput').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(file.size > 1024 * 1024){
+    alert('Please choose an image smaller than 1MB.');
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.customIcon = reader.result;
+    state.selectedIcon = 'custom';
+    markDirty();
+    renderIconPicker();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+/* ---------- unsaved-edits tracking ---------- */
+let modalDirty = false;
+function markDirty(){
+  modalDirty = true;
+  $('unsavedBadge').hidden = false;
+}
+function clearDirty(){
+  modalDirty = false;
+  $('unsavedBadge').hidden = true;
+}
+['linkTitleInput','linkUrlInput','descInput'].forEach((id) => {
+  $(id).addEventListener('input', markDirty);
+});
+
+/* ---------- modal ---------- */
+function openModal(editId){
+  state.editingId = editId || null;
+  if(editId){
+    const link = state.links.find(l => l.id === editId);
+    $('modalTitle').textContent = 'Edit link';
+    $('linkTitleInput').value = link.title;
+    $('linkUrlInput').value = link.url;
+    $('descInput').value = link.desc || '';
+    state.selectedIcon = link.icon || 'none';
+    state.customIcon = link.customIcon || null;
+    $('deleteLinkBtn').hidden = false;
+  } else {
+    $('modalTitle').textContent = 'Add link';
+    $('linkTitleInput').value = '';
+    $('linkUrlInput').value = '';
+    $('descInput').value = '';
+    state.selectedIcon = 'none';
+    state.customIcon = null;
+    $('deleteLinkBtn').hidden = true;
+  }
+  renderIconPicker();
+  setEditorMode('edit');
+  clearDirty();
+  $('linkModal').hidden = false;
+  $('linkTitleInput').focus();
+}
+function closeModal(){ $('linkModal').hidden = true; }
+function attemptClose(){
+  if(modalDirty){
+    if(!confirm('You have unsaved edits. Discard them and close?')) return;
+  }
+  closeModal();
+}
+$('modalClose').addEventListener('click', attemptClose);
+$('linkModal').addEventListener('click', (e) => { if(e.target === $('linkModal')) attemptClose(); });
+$('addLinkBtn').addEventListener('click', () => openModal(null));
+
+$('saveLinkBtn').addEventListener('click', async () => {
+  const title = $('linkTitleInput').value.trim();
+  let url = $('linkUrlInput').value.trim();
+  if(!title || !url){ return; }
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const desc = $('descInput').value;
+  const id = state.editingId || crypto.randomUUID();
+  const data = { title, url, icon: state.selectedIcon, desc, customIcon: state.customIcon || null };
+  clearDirty();
+  closeModal();
+  try{
+    await persistLink(id, data);
+  }catch(e){
+    console.error('Failed to save link', e);
+    alert('Could not save the link (sync error). Check your connection or Firebase config.');
+  }
+});
+$('deleteLinkBtn').addEventListener('click', async () => {
+  if(!state.editingId) return;
+  if(confirm('Delete this link?')){
+    const id = state.editingId;
+    clearDirty();
+    closeModal();
+    try{
+      await removeLink(id);
+    }catch(e){
+      console.error('Failed to delete link', e);
+      alert('Could not delete the link (sync error). Check your connection or Firebase config.');
+    }
+  }
+});
+
+/* ---------- links grid ---------- */
+function hostnameOf(url){
+  try{ return new URL(url).hostname.replace(/^www\./,''); }catch(e){ return url; }
+}
+function iconMarkupFor(link){
+  if(link.icon === 'custom' && link.customIcon){
+    return { html: '<img src="' + link.customIcon + '" alt="" />', cls: 'has-image' };
+  }
+  if(link.icon && ICONS[link.icon]){
+    return { html: ICONS[link.icon], cls: '' };
+  }
+  return { html: EMPTY_ICON, cls: 'empty' };
+}
+function renderLinks(){
+  const grid = $('linksGrid');
+  grid.innerHTML = '';
+  $('emptyState').hidden = state.links.length > 0;
+  state.links.forEach(link => {
+    const card = document.createElement('div');
+    card.className = 'link-card neu';
+
+    const main = document.createElement('div');
+    main.className = 'link-card-main';
+    const iconInfo = iconMarkupFor(link);
+    main.innerHTML =
+      '<div class="link-icon' + (iconInfo.cls ? ' ' + iconInfo.cls : '') + '">' + iconInfo.html + '</div>' +
+      '<div class="link-info">' +
+        '<div class="link-title"></div>' +
+        '<div class="link-url"></div>' +
+      '</div>' +
+      '<div class="link-card-actions"></div>';
+    main.querySelector('.link-title').textContent = link.title;
+    main.querySelector('.link-url').textContent = hostnameOf(link.url);
+
+    const actions = main.querySelector('.link-card-actions');
+    if(state.devMode){
+      const editBtn = document.createElement('button');
+      editBtn.className = 'mini-btn'; editBtn.innerHTML = PENCIL; editBtn.title = 'Edit';
+      editBtn.addEventListener('click', (e) => { e.stopPropagation(); openModal(link.id); });
+      const delBtn = document.createElement('button');
+      delBtn.className = 'mini-btn danger'; delBtn.innerHTML = TRASH; delBtn.title = 'Delete';
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if(confirm('Delete this link?')){
+          try{
+            await removeLink(link.id);
+          }catch(err){
+            console.error('Failed to delete link', err);
+            alert('Could not delete the link (sync error). Check your connection or Firebase config.');
+          }
+        }
+      });
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+    }
+    const chevBtn = document.createElement('button');
+    chevBtn.className = 'chevron-btn'; chevBtn.innerHTML = CHEVRON; chevBtn.title = 'Show description';
+    actions.appendChild(chevBtn);
+
+    const panel = document.createElement('div');
+    panel.className = 'link-desc-panel';
+    const rendered = document.createElement('div');
+    rendered.className = 'md-rendered';
+    rendered.innerHTML = renderMarkdown(link.desc || '');
+    panel.appendChild(rendered);
+
+    chevBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = panel.classList.toggle('open');
+      chevBtn.classList.toggle('open', open);
+    });
+    main.addEventListener('click', () => window.open(link.url, '_blank', 'noopener'));
+
+    card.appendChild(main);
+    card.appendChild(panel);
+    grid.appendChild(card);
+  });
+}
+
+loadState();
+})();
+</script>
+</body>
+</html>
