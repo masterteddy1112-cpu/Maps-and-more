@@ -158,12 +158,12 @@
   /* ---------- links section ---------- */
   .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .section-head h2{font-size:17px;}
-  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start;}
+  .links-grid{column-width:300px;column-gap:14px;}
   .empty-state{
     text-align:center;padding:50px 20px;border:1.5px dashed var(--border);border-radius:18px;font-size:14px;
   }
 
-  .link-card{overflow:hidden;transition:box-shadow .2s ease;align-self:start;}
+  .link-card{overflow:hidden;transition:box-shadow .2s ease;break-inside:avoid;margin-bottom:14px;display:inline-block;width:100%;vertical-align:top;}
   .link-card-main{
     display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;
   }
@@ -201,13 +201,14 @@
 
   .link-desc-panel{
     max-height:0;overflow:hidden;opacity:0;transform:translateY(-4px);
-    transition:max-height .18s ease, padding .18s ease, opacity .12s ease, transform .12s ease;
+    padding:0 18px 0 74px;
+    transition:max-height .2s ease, opacity .12s ease, transform .12s ease;
     border-top:1px solid transparent;
   }
   .link-desc-panel.open{
-    max-height:2000px;padding:2px 18px 18px 74px;border-top:1px solid var(--border);
+    padding:2px 18px 18px 74px;border-top:1px solid var(--border);
     opacity:1;transform:translateY(0);
-    transition:opacity .18s ease, transform .18s ease;
+    transition:max-height .2s ease, opacity .16s ease .09s, transform .16s ease .09s;
   }
   .md-rendered{font-size:13.5px;line-height:1.6;color:var(--text);}
   .md-rendered h1,.md-rendered h2,.md-rendered h3{color:var(--text);margin:8px 0 4px;}
@@ -1038,8 +1039,20 @@ function renderLinks(){
 
     chevBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const open = panel.classList.toggle('open');
-      chevBtn.classList.toggle('open', open);
+      const opening = !panel.classList.contains('open');
+      if (opening) {
+        panel.classList.add('open');
+        const target = panel.scrollHeight;
+        panel.style.maxHeight = '0px';
+        void panel.offsetHeight; // lock in starting height before animating
+        panel.style.maxHeight = target + 'px';
+      } else {
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+        void panel.offsetHeight; // lock in starting height before animating
+        panel.classList.remove('open');
+        panel.style.maxHeight = '0px';
+      }
+      chevBtn.classList.toggle('open', opening);
     });
     main.addEventListener('click', () => window.open(link.url, '_blank', 'noopener'));
 
